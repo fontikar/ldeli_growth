@@ -1,0 +1,405 @@
+---
+title: "Quality control with dartR"
+author: "Fonti Kar"
+date: "5/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+sessionInfo()
+
+# R version 3.6.1 (2019-07-05)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS High Sierra 10.13.6
+
+pacman::p_load(dplyr, magrittr, ggplot2, purrr,  GGally, mice, janitor, MASS, patchwork, lubridate, stringr, tidyr, dartR)
+
+# library(devtools)
+# install.packages("BiocManager")
+# BiocManager::install(c("SNPRelate", "qvalue"))
+# install_github("green-striped-gecko/dartR")
+
+library(dartR)
+```
+
+#Read in my singlerow data from DArT
+```{r}
+sr_all <- read.csv("data/SNP/Ldeli_all_single_row.csv", stringsAsFactors = F)
+```
+
+#Read file into dartR
+```{r}
+# ld <- gl.read.dart(filename = "data/SNP/Ldeli_all_single_row.csv",
+#                   ind.metafile = "data/SNP/Lampropholis_ind_data.csv",
+#                   topskip = 6,
+#                   lastmetric = 17)
+# 
+# saveRDS(ld, "output/dartR/all_sr_gl")
+
+ld <- readRDS("output/dartR/all_sr_gl") #Thats pretty cool, it prunes the SNPS for you via ind_metadata but we want to use both F0 and F1s for filtering anyway
+str(ld)
+```
+
+#Filtering begins
+I want a high quality and a low quality dataset in the end and the test using mantel test if they are correlated
+
+#For low quality 
+1) Read Depth (AvgRepCount)
+2) Reproducibility
+3.1) Call Rate by loci (CallRate)
+3.2) Call Rate by individual
+4) Monomorphs
+
+1) Read Depth
+```{r}
+gl.report.rdepth(ld, plot = T)
+
+# Starting gl.report.rdepth 
+# No. of loci = 185963 
+# No. of individuals = 609 
+#   Miniumum read depth:  2.5 
+#   Maximum read depth:  150 
+#   Mean read depth:  9.823 
+# 
+# Completed: gl.report.rdepth 
+
+ld$other$loc.metrics$AvgCountRef %>% summary()
+ld$other$loc.metrics$AvgCountSnp %>% summary()
+
+#Filtering
+ld_RD_1 <- gl.filter.rdepth(ld, lower = 7, upper = 40, verbose = 2) 
+nLoc(ld_RD_1)/nLoc(ld)  #Retaining: 65%
+
+ld_RD_2 <- gl.filter.rdepth(ld, lower = 9, upper = 40, verbose = 2) 
+nLoc(ld_RD_2)/nLoc(ld)  #Retaining: 49%
+
+ld_RD_3 <- gl.filter.rdepth(ld, lower = 8, upper = 40, verbose = 2) 
+nLoc(ld_RD_3)/nLoc(ld)  #Retaining: 0.57% <- go with this
+```
+
+1.2) Ben's course suggests to filter out loci with 
+1) Read depth
+2) Rates of homosygosity <- can't do this! 
+3) Minor allele frequencies and thats it!
+```{r}
+ld_RD_3$other$loc.metrics %>% colnames() #FreqHomRef
+
+#What is the distrubiton
+ld_RD_3$other$loc.metrics$FreqHomRef %>% hist()
+ld_RD_3$other$loc.metrics$FreqHomRef %>% summary()
+
+ld_RD_3$other$loc.metrics$FreqHomSnp  %>% hist()
+ld_RD_3$other$loc.metrics$FreqHomSnp %>% summary()
+
+ 
+ld_RD_3$loc.names[ld_RD_3$other$loc.metrics$FreqHomRef <  0.9] %>% length() / nLoc(ld_RD_3) #30%
+ld_RD_3$loc.names[ld_RD_3$other$loc.metrics$FreqHomRef <  0.8] %>% length() 
+
+#Filtering by baseR 
+loci_to_keep <- ld_RD_3$loc.names[ld_RD_3$other$loc.metrics$FreqHomRef <  0.9] 
+
+ld_RD_3[ld_RD_3$loc.names %in% loci_to_keep] #Why does it drop individuals as well?
+
+ld_RD_3[ld_RD_3$other$loc.metrics$FreqHomRef <  0.9] #Filters out a lot of individuals! 167 left!
+homozyg_exclude_ids <- ld_RD_3$ind.names[ld_RD_3$other$loc.metrics$FreqHomRef >  0.9] #Who is filtered out
+homozyg_exclude_ids <- homozyg_exclude_ids[!is.na(homozyg_exclude_ids)]
+
+#How many babies
+grep("BABY",homozyg_exclude_ids) %>% length() #273/300 Thats most of them <- maybe thats why this is going wrong
+grep("MOM",homozyg_exclude_ids) %>% length() #129 Thats all of them
+grep("DAD",homozyg_exclude_ids) %>% length() #40 Thats all of them
+```
+
+2) Reproducibility
+```{r}
+RepAvg_report <- gl.report.repavg(ld_RD_3) 
+   # Threshold Retained Percent Filtered Percent
+# 1  1.0000000    78899    74.3    27230    25.7
+# 2  0.9960696    81444    76.7    24685    23.3
+# 3  0.9921392    94321    88.9    11808    11.1
+# 4  0.9882088    99343    93.6     6786     6.4
+# 5  0.9842784   101770    95.9     4359     4.1
+# 6  0.9803480   103617    97.6     2512     2.4
+# 7  0.9764176   104773    98.7     1356     1.3
+
+#Filtering
+ld_RepAvg <- gl.filter.repavg(ld_RD_3, threshold = 0.9921392) 
+nLoc(ld_RepAvg)/nLoc(ld) #Retaining  50.7%
+```
+
+3) Call Rate by loci and individual
+```{r} 
+CallRate_loc_report <- gl.report.callrate(ld_RepAvg, plot = T, method = "loc")
+# No. of individuals = 609 
+#   Miniumum Call Rate:  0.2 
+#   Maximum Call Rate:  1 
+#   Average Call Rate:  0.831 
+#   Missing Rate Overall:  0.17 
+# 
+#    Threshold Retained Percent Filtered Percent
+# 1       1.00       26     0.0    94295   100.0
+# 2       0.95    37043    39.3    57278    60.7
+# 3       0.90    53432    56.6    40889    43.4
+
+CallRate_ind_report <- gl.report.callrate(ld_RepAvg, plot = T, method = "ind")
+# No. of individuals = 609 
+#   Miniumum Call Rate:  0.03 
+#   Maximum Call Rate:  0.92 
+#   Average Call Rate:  0.831 
+#   Missing Rate Overall:  0.17 
+# 
+#    Threshold Retained Percent Filtered Percent
+# 1       1.00        0     0.0      609   100.0
+# 2       0.95        0     0.0      609   100.0
+# 3       0.90        1     0.2      608    99.8
+# 4       0.85        4     0.7      605    99.3
+# 5       0.80      601    98.7        8     1.3
+
+#Filtering by loci
+ld_CR_loc_1  <- gl.filter.callrate(ld_RepAvg, method = "loc", threshold = 0.95) 
+nLoc(ld_CR_loc_1)/nLoc(ld) #Retaining 20%
+
+ld_CR_loc_2  <- gl.filter.callrate(ld_RepAvg, method = "loc", threshold = 0.97) 
+nLoc(ld_CR_loc_2)/nLoc(ld) #Retaining  14% <- go with this
+
+ld_CR_loc_3  <- gl.filter.callrate(ld_RepAvg, method = "loc", threshold = 0.99) 
+nLoc(ld_CR_loc_3)/nLoc(ld) #Retaining  5%
+
+#Filtering by ind
+ld_CR_ind  <- gl.filter.callrate(ld_CR_loc_2, method = "ind", threshold = 0.8) 
+nLoc(ld_CR_ind)/nLoc(ld) #Retaining 14% #I want to keep as many individuals for now
+```
+
+4) Monomorphs
+```{r}
+ld_MM_report <- gl.report.monomorphs(ld_CR_ind) 
+
+# Identifying monomorphic loci
+# 
+# Breakdown of 26026 loci
+#   Monomorphic loci: 18 
+#   Polymorphic loci: 26008 
+#   Loci with no scores (all NA): 0 
+# Completed: gl.report.monomorphs 
+
+#Filtering
+ld_MM <- gl.filter.monomorphs(ld_CR_ind)
+nLoc(ld_MM)/nLoc(ld) #Retaining  14%
+```
+
+#Final Metrics for 'low quality' SNP data
+
+```{r}
+ld_LQ_metrics <- gl.recalc.metrics(ld_MM)
+ld_LQ_metrics
+
+## To Report in papers:
+## Final loci count: 26008 loci
+## Final individual count: 606
+
+## Genotypting Rate:
+summary(ld_MM@other$loc.metrics$CallRate)
+sd(ld_MM@other$loc.metrics$CallRate)
+#Mean 0.9855
+#SD 0.008154941
+```
+
+#Export this 'low quality' data for G matrix calculations
+```{r}
+ld_MM<- readRDS("output/dartR/low_quality_gl")
+str(ld_MM)
+ld_MM$gen
+
+write.csv(as.matrix(ld_MM), "data/SNP/processed/LD_SNP_low.csv")
+
+saveRDS(ld_MM, "output/dartR/low_quality_gl")
+
+```
+
+#For high quality 
+1) Read Depth (AvgRepCount) - same as LQ
+2) Call Rate by loci (CallRate) - same as LQ
+3) Call Rate by individual - same as LQ
+4) Monomorphs - same as LQ
+5) Minor allele frequency
+6) Hamming distance (filters out loci that might be paralogues)
+7) HWE - Parents only
+8) Linkage disequilibrium 
+
+5) Minor allele frequency
+```{r}
+ld_maf_report <- gl.report.maf(ld_MM)
+
+#Filtering
+ld_maf <- gl.filter.maf(ld_MM, t=0.02, v=3)
+nLoc(ld_maf)/nLoc(ld) #Retaining  6%
+
+```
+
+6) Hamming distance (filters out loci that might be paralogues)
+Note: This step takes a long time
+```{r}
+ld_HDM_report <- gl.report.hamming(ld_maf)
+
+# No. of loci = 11604 
+# No. of individuals = 606 
+#   Miniumum Hamming distance:  0 
+#   Maximum Hamming distance:  0.92 
+#   Mean Hamming Distance 0.677216698995904+/-0.0618812854326955 SD
+# 
+# Note: The data below are calculated from pairwise distances between 11604 loci, for which there are 67320606 distances
+#    Threshold Retained Percent Filtered Percent
+# 1       1.00        0     0.0 67320606   100.0
+# 2       0.95        0     0.0 67320606   100.0
+# 3       0.90       36     0.0 67320570   100.0
+# 4       0.85    26822     0.0 67293784   100.0
+# 5       0.80   785048     1.2 66535558    98.8
+# 6       0.75  8082641    12.0 59237965    88.0
+# 7       0.70 24743085    36.8 42577521    63.2
+# 8       0.65 47589681    70.7 19730925    29.3
+# 9       0.60 60438310    89.8  6882296    10.2
+# 10      0.55 65405001    97.2  1915605     2.8
+# 11      0.50 66942957    99.4   377649     0.6
+# 12      0.45 67214351    99.8   106255     0.2
+# 13      0.40 67287225   100.0    33381     0.0
+# 14      0.35 67304260   100.0    16346     0.0
+# 15      0.30 67310944   100.0     9662     0.0
+# 16      0.25 67313422   100.0     7184     0.0
+# 17      0.20 67315463   100.0     5143     0.0
+# 18      0.15 67316500   100.0     4106     0.0
+# 19      0.10 67317411   100.0     3195     0.0
+# 20      0.05 67317463   100.0     3143     0.0
+# 21      0.00 67320606   100.0        0     0.0
+
+#Filtering
+ld_HDM <- gl.filter.hamming(ld_maf, t=0.25, pb = T)
+nLoc(ld_HDM)/nLoc(ld) #4.5%
+
+saveRDS(ld_HDM, "output/dartR/ld_HDM")
+ld_HDM <- readRDS("output/dartR/ld_HDM")
+```
+
+7) HWE - Parents only
+
+```{r}
+#Subset parents
+#gl_new <- gl[gl$pop!="EmmacBrisWive", ]
+ld_HDM_f0 <- ld_HDM[grep("MOM|DAD", ld_HDM$ind.names), ] #308 individuals
+
+ld_HWE_report <- gl.report.hwe(ld_HDM_f0, plot = T) 
+
+#Filtering for F0
+ld_HWE_f0 <-gl.filter.hwe(ld_HDM_f0, alpha=0.05, basis="any", v=3)
+
+saveRDS(ld_HWE_f0, "output/dartR/ld_HWE_f0")
+
+#What are the names of the loci that are left?
+ld_HWE_f0$loc.names
+nLoc(ld_HWE_f0)/nLoc(ld_HDM_f0) #Same num of loci
+
+#Filtering for F0 and F1
+ld_HWE <- ld_HDM[ld_HDM$loc.names %in% ld_HWE_f0$loc.names, ]
+nLoc(ld_HWE)/nLoc(ld) #Remaining stil 4.5% (No locis filtered out?)
+
+saveRDS(ld_HWE, "output/dartR/ld_HWE")
+ld_HWE <- readRDS("output/dartR/ld_HWE")
+```
+
+#Save locis as matrix now and make a 'high quality' G matrix because LD filters out everything
+Metric and then save
+```{r}
+ld_HQ_metrics <- gl.recalc.metrics(ld_HWE)
+ld_HQ_metrics
+
+## To Report in papers:
+## Final loci count: 8438 loci
+## Final individual count: 606
+
+## Genotypting Rate:
+summary(ld_HWE@other$loc.metrics$CallRate)
+sd(ld_HWE@other$loc.metrics$CallRate)
+#Mean .9846
+#SD 0.008591205
+
+
+write.csv(as.matrix(ld_HWE), "data/SNP/processed/LD_SNP_high.csv")
+```
+
+8) Linkage disequilibrium 
+
+LD.genotype returns a 5 element list:
+call the matched call
+D Linkage disequilibrium estimate
+Dprime Scaled linkage disequilibrium estimate
+corr Correlation coefficient
+nobs Number of observations
+chisq Chi-square statistic for linkage equilibrium (i.e., D=D???=corr=0)
+p.value Chi-square p-value for marker independence
+
+***LD.data.frame returns a list with the same elements, but each element is a matrix where the upper
+off-diagonal elements contain the estimate for the corresponding pair of markers. The other matrix
+elements are NA. (Genetics R package)
+```{r}
+#Code from Carlos
+# ldstats <- gl.report.ld(gl9, name = "ldstats.rdata", save = TRUE)
+# load("LD_ldstats.rdata.rdata")
+# ldstats.rdata$pcorr <- p.adjust(ldstats.rdata$p,method="bonferroni")
+# sigld <- ldstats.rdata[which(ldstats.rdata$pcorr<=0.05),]
+# gl9$other$loc.metrics$number <- 1:nLoc(gl9)
+# gl9$other$loc.metrics$linked <- gl9$other$loc.metrics$number %in% sigld$loc2
+# gl10 <- gl9[,which(gl9$other$loc.metrics$linked=="TRUE")]
+# gl10$other$loc.metrics <- gl10$other$loc.metrics[which(gl9$other$loc.metrics$linked=="TRUE"),]
+
+ld_HWE <- readRDS("output/dartR/ld_HWE")
+
+#ld_LE_report <- gl.report.ld(ld_HWE)
+load("LDallp.rdata")
+
+       #    loc1 loc2             D    Dprime            r           R2   n          X2            p
+       # 1:    1    2 -0.0006205439 0.0235529 -0.005232754 2.738171e-05 606  0.03318664 8.554477e-01
+       # 2:    1    3  0.0061371754 0.1842876  0.052764439 2.784086e-03 606  3.37431227 6.622021e-02
+       # 3:    1    4  0.0103578712 0.4015077  0.100477141 1.009566e-02 606 12.23593481 4.687785e-04
+       # 4:    1    5  0.0047019208 0.2506117  0.053140581 2.823921e-03 606  3.42259265 6.430994e-02
+       # 5:    1    6  0.0033266915 0.1916888  0.039042491 1.524316e-03 606  1.84747110 1.740778e-01
+
+#Results are saved as object LDallp under LDallp.rdata.
+str(LDallp)
+head(LDallp)
+
+#First correct for multiple testing
+LDallp$pcorr <- p.adjust(LDallp$p,method="bonferroni")
+summary(LDallp$pcorr)
+summary(LDallp)
+hist(LDallp$pcorr)
+
+#Filter the comparisons that are statistically significant using corrected p values
+ sigld <- LDallp[which(LDallp$pcorr<=0.05),]
+ sigld %>% str()
+ sigld %>% summary()
+ hist(sigld$pcorr)
+
+#Adding loci info and linked info to our gl object
+ ld_HWE$other$loc.metrics$number <- 1:nLoc(ld_HWE)
+ # ld_HWE$other$loc.metrics$linked
+ 
+#Exploring linked loci
+#How many linked loci do we have
+ld_HWE$other$loc.metrics$number %in% unique(c(sigld$loc1,sigld$loc2)) %>% tabyl() #All loci are linked? 
+
+#How many unique LINKED loci do we have
+c(sigld$loc1, sigld$loc2) %>% unique() %>% length() 8438
+sigld %>% filter(loc1 == 1)
+sigld %>% filter(loc1 == 73) %>% nrow()
+sigld %>% filter(loc1 == 364) %>% nrow()
+
+ #Stopped here to email Scott...
+```
+Filter by secondaries
+
+```{r}
+ld_second_report <- gl.report.secondaries(ld_HWE)
+ld_second_report #NONE.
+```
+

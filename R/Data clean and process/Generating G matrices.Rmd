@@ -1,0 +1,473 @@
+---
+title: "Generating G matrices from SNP data"
+author: "Fonti Kar"
+date: "5/6/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+sessionInfo()
+
+# R version 3.6.1 (2019-07-05)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS High Sierra 10.13.6
+
+pacman::p_load(dplyr, magrittr, ggplot2, purrr,  GGally, mice, janitor, MASS, patchwork, lubridate, stringr, tidyr, dartR, rrBLUP)
+```
+
+#Read in growth data with final babies and their genotypes
+```{r}
+growth_data <- read.csv("data/growth/processed/analysis/Ldeli_quangen_growth.csv", stringsAsFactors = F)
+str(growth_data)
+```
+
+#Read in low quality data
+```{r}
+ld_snp <- read.csv("data/SNP/processed/LD_SNP_low.csv")
+dim(ld_snp) #606 26009
+colnames(ld_snp)[1] <- "Genotype"
+```
+
+#Read in high quality data
+```{r}
+ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv")
+dim(ld_h_snp) #606 8439
+colnames(ld_h_snp)[1] <- "Genotype"
+```
+
+#Generate G matrix with Ben/Tim's code
+1) Do I filter out babies first then generate. <- going with this method
+2) Generate then prune matrix? I suspect....it might be the same? or super correlated - confirmed - see bottom of script if need to change
+
+#1.1) HQ data, filter out babies first and then calculate 
+Lets go with this method. It makes sense in my head
+Using Ben's code from other/Ben/Practice Script 
+
+```{r}
+#Filtering down SNPs to just babies in the experiment only
+growth_f1_ids <- unique(growth_data$F1_Genotype)
+
+growth_f1 <- ld_h_snp[ld_h_snp$Genotype %in% growth_f1_ids ,]
+dim(growth_f1) #264 8439
+ 
+#Setting row names and checking colnames
+colnames(growth_f1)
+rownames(growth_f1) <- growth_f1$Genotype
+
+#Removing Genotype column and just have the SNP data left (Ben removed the first 2 cols of his data not sure why when the first col is the Genotype IDs)
+growth_f1[,1]
+hq_snps <- growth_f1[,-1]
+rownames(hq_snps)
+
+#Calculate allele frequences of the second allele
+hq_pj <- colMeans(hq_snps, na.rm = T)/ 2
+length(hq_pj)
+is.na(hq_pj) %>% unlist() %>% tabyl()
+
+#Once we have the frequency of the second allele, we can rescale them to produce wij
+scale_by_pj_VanReddon <- function(x, y){
+	tmp <- x - 2*y
+	return(tmp)
+}
+
+hq_wij <- mapply(x = hq_snps, y = hq_pj, function(x,y) scale_by_pj_VanReddon(x,y))
+dim(hq_wij)
+rownames(hq_wij)
+rownames(hq_wij) <- rownames(hq_snps)
+
+View(hq_wij)
+hq_wij %in% NA %>% tabyl() #Still some NAs here
+
+#From Tim's code, he sets NA to 0 counts, otherwise the rest of Ben's code doesn't work!
+hq_wij[is.na(hq_wij)] <- 0 
+
+#Calculate total allele frequency? 
+hq_sum_pj <- 2*(sum(unlist(hq_pj)*(1-unlist(hq_pj)))) #What is this? 
+
+#Scale so that we estimate G matrix by changing wij where equal contribution from rare and common SNPs
+scale_by_pj_Yang <- function(x, y){
+		tmp <- (x - 2*y) / sqrt(2*y*(1-y))
+		return(tmp)
+	}
+
+hq_wij_Yang <- mapply(x = hq_snps, y = hq_pj, function(x,y) scale_by_pj_Yang(x,y))
+View(hq_wij_Yang)
+rownames(hq_wij_Yang) <- rownames(hq_snps)
+
+#From Tim's code, he sets NA to 0 counts , otherwise the rest of Ben's code doesn't work!
+hq_wij_Yang[is.na(hq_wij_Yang)] <- 0 
+
+## Then generate the G matrix, which is the relatedness matrix that we need!
+#The matrix is not giving equal weights to rare SNPs
+hq_WW <- hq_wij %*% t(hq_wij)
+hq_G <- hq_WW / (hq_sum_pj) 
+dim(hq_WW)	 
+dim(hq_G)	 
+
+#The matrix is where equal contribution from rare and common SNPs
+hq_WW_c <- hq_wij_Yang %*% t(hq_wij_Yang)
+hq_G_c <- hq_WW_c / (hq_sum_pj) 
+dim(hq_WW_c)	 
+dim(hq_G_c)	 
+
+#Checks
+rownames(hq_G) == colnames(hq_G)
+rownames(hq_G_c) == colnames(hq_G_c)
+
+# Have a look at our G-matrix
+plot(hist(hq_G)) #Still have values > 1 but not many
+heatmap(hq_G)
+summary(as.vector(hq_G))
+
+# Have a look at our G-matrix corrected for rare alleles
+plot(hist(hq_G_c)) #Got some large values here! but not as bad as LQ
+heatmap(hq_G_c)
+summary(as.vector(hq_G_c))
+
+diag(hq_G) %>%  hist()
+diag(hq_G_c) %>%  hist() #Na wthsi corrected for rare allele version looks bad
+
+#Check if its positive definite
+matrixcalc::is.positive.definite(hq_G, tol=1) #Nope
+matrixcalc::is.positive.semi.definite (hq_G, tol=1) #Yes
+matrixcalc::is.positive.definite(hq_G_c) #Nope
+
+eigen(hq_G)$values %>% hist()
+eigen(hq_G)$values %>% summary()
+
+#Try to make inverse
+solve(hq_G) #Gives really strange negative values for all individuals!
+solve(hq_G) #Gives really strange negative values for all individuals!
+```
+
+# Try this RRBLUP Package that gives you - following Ben's script with HQ data
+Ben uses built in function from the package RRBLUP to calculate a GRM
+I suspect in Ben's dataset he has rows as loci and cols as IDs, thats why he transposed, we already have our data with loci as rows so DON'T transpose following his code
+```{r}
+ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv", row.names = 1) #Sets lizard ID as row names
+dim(ld_h_snp) #606 8438
+
+#Filtering down SNPs to just babies in the experiment only
+growth_f1_ids <- unique(growth_data$F1_Genotype)
+
+growth_f1 <- ld_h_snp[rownames(ld_h_snp) %in% growth_f1_ids ,]
+dim(growth_f1) #264 8438
+View(growth_f1)
+ 
+#Setting row names and checking colnames
+colnames(growth_f1)
+rownames(growth_f1) 
+
+# # Transpose Don't think we need to do this step, we already have IDs as rows
+# LD_M = t(hq_snps) # Genotype data. We will estimate the G matrix above a little easier than before using in a built in function
+
+# Adjust genotypes to be scaled which is required
+LD_M_sc = growth_f1-1
+View(LD_M_sc)
+dim(LD_M_sc)
+
+# Build G matrix
+LD_G <- rrBLUP::A.mat(LD_M_sc)
+dim(LD_G) #Good dims
+heatmap(LD_G) #Looks good
+
+#Check the diagonals
+diag(LD_G) %>% hist() #Similar as hand calculations
+
+# Invert
+LD_Ginv <- solve(LD_G)
+heatmap(LD_Ginv) #All the same - looks wrong!!!
+LD_Ginv #Same error as hand calculation, giving me weird negative values
+```
+
+##Match the Genotypes by liz_id and the replace in G matrix
+```{r}
+#Low Q
+lowq_G <- ld_lq_G
+
+#Find match
+match(rownames(ld_lq_G), growth_data$F1_Genotype)
+#Find liz_id for match
+growth_data[match(rownames(ld_lq_G), growth_data$F1_Genotype), "liz_id"]
+#Replace row and col names
+rownames(lowq_G) <- colnames(lowq_G) <- growth_data[match(rownames(ld_lq_G), growth_data$F1_Genotype), "liz_id"]
+
+heatmap(lowq_G)
+
+#High Q
+highq_G <- hq_G
+
+#Find match
+match(rownames(hq_G), growth_data$F1_Genotype)
+#Find liz_id for match
+growth_data[match(rownames(hq_G), growth_data$F1_Genotype), "liz_id"]
+#Replace row and col names
+rownames(highq_G) <- colnames(highq_G) <- growth_data[match(rownames(hq_G), growth_data$F1_Genotype), "liz_id"]
+
+heatmap(highq_G)
+
+#Invert the G matrix
+solve(highq_G) %>% head() #This doens't work
+```
+
+
+#1.2) LQ data, filter out babies first and then calculate 
+Lets go with this method. It makes sense in my head
+Using Ben's code from Practice Script 
+
+```{r}
+#Filtering down SNPs to just babies in the experiment only
+growth_f1_ids <- unique(growth_data$F1_Genotype)
+
+growth_f1 <- ld_snp[ld_snp$Genotype %in% growth_f1_ids ,]
+dim(growth_f1) #264 26009
+ 
+#Setting row names and checking colnames
+colnames(growth_f1)
+rownames(growth_f1) <- growth_f1$Genotype
+
+#Removing Genotype column and just have the SNP data left (Ben removed the first 2 cols of his data not sure why when the first col is the Genotype IDs)
+growth_f1[,1]
+f1_snps <- growth_f1[,-1]
+rownames(f1_snps)
+
+#Calculate allele frequences of the second allele
+freq_allele <- function(x){
+	sum(x) / (2*length(x))
+}
+
+lq_pj <- lapply(f1_snps, function(x) freq_allele(x))
+head(lq_pj)
+str(lq_pj)
+length(lq_pj)
+summary(lq_pj)
+
+# Or, you can just:
+lq_pj <- colMeans(f1_snps, na.rm = T)/ 2
+length(lq_pj)
+is.na(lq_pj) %>% unlist() %>% tabyl()
+
+#Once we have the frequency of the second allele, we can rescale them to produce wij
+scale_by_pj_VanReddon <- function(x, y){
+	tmp <- x - 2*y
+	return(tmp)
+}
+
+lq_wij <- mapply(x = f1_snps, y = lq_pj, function(x,y) scale_by_pj_VanReddon(x,y))
+dim(lq_wij)
+rownames(lq_wij)
+rownames(lq_wij) <- rownames(f1_snps)
+
+View(lq_wij)
+lq_wij %in% NA %>% tabyl() #Still some NAs here
+
+#From Tim's code, he sets NA to 0 counts
+lq_wij[is.na(lq_wij)] <- 0 
+
+#Sum part of the calculation is throwig NA
+lq_sum_pj <- 2*(sum(unlist(lq_pj)*(1-unlist(lq_pj)))) #What is this? Total sum of allele freq? 
+#Break this up
+sum(as.vector((unlist(lq_pj)*(1 - unlist(lq_pj))))) #Can't sum cause there are NAs #Fixed. Ben's code doesn't like NAs
+
+## Or, we can do this using Ben's Code. It matches mine, so these are correct. Takes a while
+# w <- array(0, c(nrow(f1_snps), ncol(f1_snps)))
+# sump <- 0
+# p <- array(0, ncol(f1_snps))
+# 
+# 		for(i in 1:ncol(f1_snps)){
+# 			for(j in 1:nrow(f1_snps)){
+# 				p[i] = p[i] + f1_snps[j,i]
+# 			}
+# 			p[i] = p[i] / (2*nrow(f1_snps))
+# 			sump <- sump + 2*p[i]*(1-p[i])
+# 			for(j in 1:nrow(f1_snps)){
+# 				w[j,i] = f1_snps[j,i] - 2*p[i]
+# 			}
+# 
+# 		}
+
+# dim(w)
+# length(sump)
+# length(p)
+
+#Scale so that we estimate G matrix by changing wij where equal contribution from rare and common SNPs
+scale_by_pj_Yang <- function(x, y){
+		tmp <- (x - 2*y) / sqrt(2*y*(1-y))
+		return(tmp)
+	}
+
+ld_wij_Yang <- mapply(x = f1_snps, y = lq_pj, function(x,y) scale_by_pj_Yang(x,y))
+View(ld_wij_Yang)
+rownames(ld_wij_Yang) <- rownames(f1_snps)
+
+#From Tim's code, he sets NA to 0 counts
+ld_wij_Yang[is.na(ld_wij_Yang)] <- 0 
+
+## Then generate the G matrix, which is the relatedness matrix that we need!
+#The matrix is not giving equal weights to rare SNPs
+ld_WW <- lq_wij %*% t(lq_wij)
+ld_lq_G <- ld_WW / (lq_sum_pj) 
+dim(ld_WW)	 
+dim(ld_lq_G)	 
+
+#The matrix is where equal contribution from rare and common SNPs
+ld_WW_c <- ld_wij_Yang %*% t(ld_wij_Yang)
+ld_lq_G_c <- ld_WW_c / (lq_sum_pj) 
+dim(ld_WW_c)	 
+dim(ld_lq_G_c)	 
+
+#Checks
+rownames(ld_lq_G) == colnames(ld_lq_G)
+rownames(ld_lq_G_c) == colnames(ld_lq_G_c)
+
+# Have a look at our G-matrix
+plot(hist(ld_lq_G))
+heatmap(ld_lq_G)
+summary(as.vector(ld_lq_G)) #Still have values > 1
+
+# Have a look at our G-matrix corrected for rare alleles
+plot(hist(ld_lq_G_c)) #Got some large values here! 
+heatmap(ld_lq_G_c)
+summary(as.vector(ld_lq_G_c)) #Still have values > 1 very strange
+
+diag(ld_lq_G) %>%  hist()
+diag(ld_lq_G_c) %>%  hist() #Na we can't have this...
+
+#Check if its positive definite
+matrixcalc::is.positive.definite(ld_lq_G) #Nope
+matrixcalc::is.positive.definite(ld_lq_G_c) #Nope
+
+#Try to make inverse
+MCMCglmm::inverseA(ld_lq_G, scale = TRUE)$Ainv 
+# Error in MCMCglmm::inverseA(ld_lq_G, scale = TRUE) : 
+#   pedigree must have three columns: id, dam and sire
+```
+
+#Tim's code
+```{r}
+#Calculate allele frequency - (Pj is P from HW equation)
+##Convert to numeric
+f1_snps <- sapply(f1_snps, as.numeric)
+dim(f1_snps)
+
+pj.1 <- colMeans(f1_snps, na.rm = TRUE)/2 #Because you have two alleles Aa
+pj.1[is.na(pj.1)] <- 0 #No NA allelefreq
+is.na(pj.1) %>% tabyl()
+length(pj.1)
+
+#Center the allele counts 
+W.1 <- sweep(f1_snps, 2, 2*pj.1) #Second argument = 2 means apply to columns
+W.1[is.na(W.1)] <- 0
+W.1 <- as.matrix(W.1)
+dim(W.1) == dim(f1_snps)
+rownames(W.1) <- rownames(f1_snps)
+
+#Compute the GRM assuming neutrality
+t(W.1) %>% dim()
+G.1 <- W.1 %*% t(W.1) / (2*sum(pj.1*(1-pj.1))) #Second term is standardising for heterozygosity Ben's code doesn't have this
+dim(G.1) #There we go
+
+#Checks
+rownames(G.1)
+colnames(G.1)
+```
+
+
+## Do some checks, look at G values for sibs
+```{r}
+#Full sibs
+growth_data$dam_id %>% unique()
+
+full_sib <- growth_data %>% filter(dam_id ==  "ld0035") %>% pull(liz_id) %>% unique()
+
+rownames(G) %in% full_sib
+
+G[grep(paste(full_sib,collapse="|"), rownames(G)),grep(paste(full_sib,collapse="|"), rownames(G))]
+
+
+#Half sibs
+growth_data %>% filter(dam_id == "ld0062") %>% dplyr::select(liz_id, dam_id, sire_id) %>% distinct()
+half_sibs <- growth_data %>% filter(dam_id == "ld0062") %>% pull(liz_id) %>% unique()
+
+#Filter the matrix
+
+G[grep(paste(half_sibs,collapse="|"), rownames(G)),grep(paste(half_sibs,collapse="|"), rownames(G))]
+```
+
+##Save this G matrix
+
+```{r}
+write.csv(G, row.names = F, "data/SNP/processed/analysis/low_q_Gmatrix.csv")
+
+G_test <- read.csv("data/SNP/processed/analysis/low_q_Gmatrix.csv")
+rownames(G_test) <- colnames(G_test)
+as.matrix(G_test)
+```
+
+##2.1) Calculate first and then don't transpose and then prune out babies
+
+```{r}
+rownames(ld_snp) <- ld_snp$Genotype
+all_snps <- ld_snp[,-1] # Removing Genotype column
+dim(all_snps)  #606 26008
+
+#Distribution of allele frequencies
+#Convert to numeric
+all_snps <- sapply(all_snps, as.numeric)
+
+#Calculate allele frequency - (Pj is P from HW equation)
+pj.2 <- colMeans(all_snps, na.rm = TRUE)/2 #Because you have two alleles Aa
+pj.2[is.na(pj.2)] <- 0 #No NA allelefreq
+
+#What am I suppose to expect and see?
+length(pj.2) 
+summary(pj.2) 
+hist(pj.2)
+
+#Center the allele counts 
+W.2 <- sweep(all_snps, 2, 2*pj) #Second argument = 2 means apply to columns
+W.2[is.na(W.2)] <- 0
+W.2 <- as.matrix(W.2)
+dim(W.2) == dim(all_snps)
+
+#Again, what am I suppose to see? 
+# image(W)
+# image(t(W))
+
+#Compute the GRM assuming neutrality
+t(W.2) %>% dim()
+G.2 <- W.2 %*% t(W.2) / (2*sum(pj.2*(1-pj.2))) #Second term is standardising for heterozygosity
+dim(G.2) #There we go
+
+#Checks
+colnames(G.2) #No names?!
+rownames(G.2) #No names?! Would it be just in the same order as my rownames(f1_snps)
+
+image(G.2) 
+
+#Lets assume that the order is the same
+rownames(G.2) <- colnames(G.2) <- rownames(all_snps)
+
+#Filter out babies from matrix
+grep("BABY",rownames(G.2))
+grep("BABY",colnames(G.2))
+
+G.2_F1 <- G.2[grep("BABY",rownames(G.2)),grep("BABY",colnames(G.2))]
+```
+
+## Mantel test to see if G.1 and G.2 are correlated
+```{r}
+G.1[1:5, 1] #They are diff in numbers
+G.2_F1[1:5, 1]
+
+class(G.1)
+class(G.2_F1)
+
+dim(G.1)
+dim(G.2_F1)
+
+mantel.randtest(as.dist(G.1), as.dist(G.2_F1))
+mantel.rtest(as.dist(G.1), as.dist(G.2_F1))
+```
