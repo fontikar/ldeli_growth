@@ -14,7 +14,15 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, purrr,  GGally, mice, janitor, MASS, patchwork, lubridate, stringr, tidyr, dartR, rrBLUP)
+# For snpReady you need to install impute package which doesn't appear to be on CRAN. Download through bioconductor
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("impute")
+
+pacman::p_load(dplyr, magrittr, ggplot2, purrr,  GGally, mice, janitor, MASS, patchwork, lubridate, stringr, tidyr, dartR, rrBLUP, snpReady, impute)
+
 ```
 
 #Read in growth data with final babies and their genotypes
@@ -25,14 +33,14 @@ str(growth_data)
 
 #Read in low quality data
 ```{r}
-ld_snp <- read.csv("data/SNP/processed/LD_SNP_low.csv")
+ld_snp <- read.csv("data/SNP/processed/LD_SNP_low.csv",stringsAsFactors=FALSE)
 dim(ld_snp) #606 26009
 colnames(ld_snp)[1] <- "Genotype"
 ```
 
 #Read in high quality data
 ```{r}
-ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv")
+ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv", stringsAsFactors=FALSE)
 dim(ld_h_snp) #606 8439
 colnames(ld_h_snp)[1] <- "Genotype"
 ```
@@ -60,6 +68,43 @@ rownames(growth_f1) <- growth_f1$Genotype
 growth_f1[,1]
 hq_snps <- growth_f1[,-1]
 rownames(hq_snps)
+
+##############################################################
+# Calculate G using SNPReady; first need to process
+##############################################################
+
+## Use snpReady to calculate G. Get some stuff ready for it
+	
+# This will filter on 95% call rate, maf 0.1 etc and also impute missing genotype data. Note that, in order to compare, I just changed defult call.rates and maf levels so that no markers were removed (for the sake of comparison)
+get_ready <- snpReady::raw.data(data = as.matrix(hq_snps), call.rate = 0.60, maf = 0.0001,
+			frame="wide", base = FALSE, plot = TRUE, imput.type="wright")
+
+# Extract the cleaned data, subsetted data
+	hq_snps_clean <- get_ready$M.clean
+
+# Pretty useful and well defined in vignette
+	pop_gen_stats <- snpReady::popgen(hq_snps_clean)  
+
+# Ok, now generate the G.matrix
+ G <- snpReady::G.matrix(M=hq_snps_clean, format = "wide", 
+ 						 method = "VanRaden",  plot = TRUE)
+
+ # Grab the Ga matrix
+ 	Ga <- G$Ga
+ 	corrplot::corrplot(Ga, is.corr = FALSE)
+
+#Check if its positive definite
+	matrixcalc::is.positive.semi.definite (Ga) #Yes
+	matrixcalc::is.positive.definite(Ga) #Yes
+
+# Check eigen values; looks fine
+	eigen(Ga)$values %>% hist()
+	eigen(Ga)$values %>% summary()
+
+#Try to make inverse
+	solve(Ga) # This looks fine. Values get really large, but what can you do.
+
+################################################################
 
 #Calculate allele frequences of the second allele
 hq_pj <- colMeans(hq_snps, na.rm = T)/ 2
