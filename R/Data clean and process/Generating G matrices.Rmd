@@ -43,6 +43,8 @@ colnames(ld_snp)[1] <- "Genotype"
 ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv", stringsAsFactors=FALSE)
 dim(ld_h_snp) #606 8439
 colnames(ld_h_snp)[1] <- "Genotype"
+
+ld_h_snp[grep("E027_", ld_h_snp$Genotype), "Genotype"]
 ```
 
 #Generate G matrix with Ben/Tim's code
@@ -50,12 +52,15 @@ colnames(ld_h_snp)[1] <- "Genotype"
 2) Generate then prune matrix? I suspect....it might be the same? or super correlated - confirmed - see bottom of script if need to change
 
 #1.1) HQ data, filter out babies first and then calculate 
-Lets go with this method. It makes sense in my head
 Using Ben's code from other/Ben/Practice Script 
 
 ```{r}
 #Filtering down SNPs to just babies in the experiment only
 growth_f1_ids <- unique(growth_data$F1_Genotype)
+growth_data %>% dplyr::select(liz_id, F1_Genotype) %>% distinct()
+setdiff(growth_f1_ids, unique(ld_h_snp$Genotype)) #One baby unmatched probably dropped due to bad samples its ok just need to correspondingly drop the indivudal from dataset
+growth_data %>% filter(F1_Genotype == "E027_16_BABY_06")
+
 
 growth_f1 <- ld_h_snp[ld_h_snp$Genotype %in% growth_f1_ids ,]
 dim(growth_f1) #264 8439
@@ -80,16 +85,16 @@ get_ready <- snpReady::raw.data(data = as.matrix(hq_snps), call.rate = 0.60, maf
 			frame="wide", base = FALSE, plot = TRUE, imput.type="wright")
 
 # Extract the cleaned data, subsetted data
-	hq_snps_clean <- get_ready$M.clean
+	hq_snps_clean <- get_ready$M.clean #No loci removed cause presumbably it was clean from dartR already
 
-# Pretty useful and well defined in vignette
+# Pretty useful and well defined in vignette #These are just baby SNPS so we can only do this with adults
 	pop_gen_stats <- snpReady::popgen(hq_snps_clean)  
 
 # Ok, now generate the G.matrix
  G <- snpReady::G.matrix(M=hq_snps_clean, format = "wide", 
  						 method = "VanRaden",  plot = TRUE)
 
- # Grab the Ga matrix
+ # Grab the Ga matrix (GRM additive version)
  	Ga <- G$Ga
  	corrplot::corrplot(Ga, is.corr = FALSE)
 
@@ -102,8 +107,20 @@ get_ready <- snpReady::raw.data(data = as.matrix(hq_snps), call.rate = 0.60, maf
 	eigen(Ga)$values %>% summary()
 
 #Try to make inverse
-	solve(Ga) # This looks fine. Values get really large, but what can you do.
+solve(Ga) %>% View() # This looks fine. Values get really large, but what can you do.
 
+Ga_inverse <- solve(Ga)
+
+#Find match
+match(rownames(Ga_inverse), data$F1_Genotype)
+#Find liz_id for match
+data[match(rownames(Ga_inverse), data$F1_Genotype), "liz_id"] %>% length()
+#Replace row and col names
+rownames(Ga_inverse) <- colnames(Ga_inverse) <- data[match(rownames(Ga_inverse), data$F1_Genotype), "liz_id"]
+
+write.csv(Ga_inverse, "output/G/InverseGa_SNPready.csv")
+
+	
 ################################################################
 
 #Calculate allele frequences of the second allele
@@ -185,6 +202,28 @@ eigen(hq_G)$values %>% summary()
 #Try to make inverse
 solve(hq_G) #Gives really strange negative values for all individuals!
 solve(hq_G) #Gives really strange negative values for all individuals!
+
+#Compare SNPready and Tim's G matrix
+mantel.rtest(as.dist(hq_G), as.dist(Ga))
+# write.csv(hq_G, "output/G_rrBLUP.csv") #These are ok they are correlated and super similar
+# write.csv(Ga, "output/Ga_SNPready.csv")
+
+#Write the inverseG
+#write.csv(solve(Ga), "output/InverseGa_SNPready.csv")
+
+#Match genotype ID to liz_id
+highq_G <- hq_G
+
+#Find match
+match(rownames(Ga_inverse), data$F1_Genotype)
+#Find liz_id for match
+data[match(rownames(Ga_inverse), data$F1_Genotype), "liz_id"]
+#Replace row and col names
+rownames(Ga_inverse) <- colnames(Ga_inverse) <- data[match(rownames(Ga_inverse), data$F1_Genotype), "liz_id"]
+
+write.csv(Ga_inverse, "output/G/InverseGa_SNPready.csv")
+
+
 ```
 
 # Try this RRBLUP Package that gives you - following Ben's script with HQ data
