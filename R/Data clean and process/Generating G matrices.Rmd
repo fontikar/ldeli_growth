@@ -44,7 +44,7 @@ ld_h_snp <- read.csv("data/SNP/processed/LD_SNP_high.csv", stringsAsFactors=FALS
 dim(ld_h_snp) #606 8439
 colnames(ld_h_snp)[1] <- "Genotype"
 
-ld_h_snp[grep("E027_", ld_h_snp$Genotype), "Genotype"]
+#ld_h_snp[grep("E027_", ld_h_snp$Genotype), "Genotype"]
 ```
 
 #Generate G matrix with Ben/Tim's code
@@ -108,8 +108,6 @@ get_ready <- snpReady::raw.data(data = as.matrix(hq_snps), call.rate = 0.60, maf
 
 #Try to make inverse
 solve(Ga) %>% View() # This looks fine. Values get really large, but what can you do.
-
-Ga_inverse <- solve(Ga)
 
 #Find match
 match(rownames(Ga_inverse), data$F1_Genotype)
