@@ -1,0 +1,109 @@
+---
+title: "Calculating additive genetic variance and h2"
+author: "Fonti Kar"
+date: "5/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+sessionInfo()
+
+# R version 3.6.1 (2019-07-05)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS High Sierra 10.13.6
+
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor)
+
+#Read in dataset
+#Complete
+data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
+str(data)
+dim(data)
+
+#Read in models
+mod.3.2.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.3.2.DA")
+Sol.3.2.DA <- mod.3.2.DA$Sol
+VCV.3.2.DA <- mod.3.2.DA$VCV
+```
+
+From Shin's paper:
+Vp = VFixed + Vi + Vrandomeffects + Vr
+Vi refers to the total variance explained by individual identity, including random intercept and random slope variance. NB: Vrandomeffects will include dam and permanent environment effects?
+
+Vs refes to total between individual variance explained by random slopes
+Vs = Vv * Vx
+Vv = ID deviation from pop slope
+Vx = Variance in covariate e.g.age, if scales Vx = 1 
+
+
+Total phenotypic variation in growth
+Vp = Vi + Vr ? Is this correct or do we have to include fixed effects as per paper? 
+"Adjusted" Vp = Vi + Vdam + Vresiduals ?
+Narrow h2 in intercepts =  Vi/Vp ?
+
+#Total phenotypic variance of growth
+Question: Do we need to account for the covariance among growth curve parameters? 
+```{r}
+Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in intercept
+  VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] + #lizard variance in slope
+  VCV.3.2.DA[,"I(z_days_since_hatch^2):I(z_days_since_hatch^2).liz_id"] + #lizard variance in curve
+  VCV.3.2.DA[,"(Intercept):(Intercept).dam_id"]  +  #Dam variance in intercept
+  VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.dam_id"] + #Dam variance in slope
+  VCV.3.2.DA[,"I(z_days_since_hatch^2):I(z_days_since_hatch^2).dam_id"] + #Dam variance in curve
+  VCV.3.2.DA[,"units"] #residuals
+  
+posterior_summary(Vtotal_p)
+```
+
+#Total additive variance of growth
+Question: Do we need to account for the covariance among growth curve parameters? 
+```{r}
+Vtotal_a <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in intercept
+  VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] + #lizard variance in slope
+  VCV.3.2.DA[,"I(z_days_since_hatch^2):I(z_days_since_hatch^2).liz_id"]  #lizard variance in curve
+
+posterior_summary(Vtotal_a)
+```
+
+#Narrow sense Heritability of growth (all parameters)
+h2 = Va / (Vp 
+Question: Do we need to account for the covariance among growth curve parameters? 
+```{r}
+h2_growth <- Vtotal_a / Vtotal_p
+
+posterior_summary(h2_growth)
+```
+
+#What if we wanted to additive genetic variance of specific growth parametrs and calculate heritability for each parameter? 
+Question: Do we need to account for the covariance among growth curve parameters?
+Question: What variance components should be in the denominator? If just calculating intercept only heritabilty, do we just have intercept only variance components in the denominator? As code below - this method is somewhat like calculating Rslope in my first chapter.
+
+```{r}
+#Intercept
+h2_intercept <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"] / ( VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"] +
+                                                                    VCV.3.2.DA[,"(Intercept):(Intercept).dam_id"] +
+                                                                    VCV.3.2.DA[,"units"] )
+
+posterior_summary(h2_intercept) #Values seem quite high? 
+
+#Slope
+h2_slope <- VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] / ( VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] +
+                                                                              VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.dam_id"] +
+                                                                              VCV.3.2.DA[,"units"] )
+posterior_summary(h2_slope) #Values seem quite high? 
+
+#etc for curvature
+```
+
+Alternatively, do we still have Vtotal_p (id intercept, id slope, id curve, dam intercept, dam slope, dam curve and residuals) as the denominator when we are calculating heritability? 
+Question: Do we need to account for the covariance among growth curve parameters?
+
+```{r}
+#Intercept
+h2_intercept_2 <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"] / ( Vtotal_p)
+
+posterior_summary(h2_intercept_2) #Values seem more sensible
+```
+
