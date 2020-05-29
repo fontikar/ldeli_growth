@@ -26,6 +26,8 @@ dim(data)
 mod.3.2.DA <- readRDS("./output/rds/mod.3.2.DA")
 Sol.3.2.DA <- mod.3.2.DA$Sol
 VCV.3.2.DA <- mod.3.2.DA$VCV
+
+mod.3.2.DA.pe <- readRDS("./output/rds/mod.3.2.DA.pe")
 ```
 
 From Shin's paper:
@@ -65,7 +67,47 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
   # Total variance is sum of variances plus the sum of 2 times the covariances. This should give you the TOTAL variance in P (mass), but because this is an estimate of the population parameters it won't match your sample (i.e., lnMass data).
   
   V_total <- rowSums(Var_i) + rowSums(2*Cov_i) 
+
+#############################################################
+  ## ATTEMPT 2
+#############################################################
+
+  # OK, I actually think that this is actually a little tricker than I originally thought, particularly so because we have quadratics at different grouping terms. Note we have also z transformed age, and this is important. So here we go with each ranom effect seperately
+
+  # Form Shin's paper we know that 
+  # Vi,x = V_{u} + 2x*C_{uv} + x^2*V_{v} when we have a SINGLE covariate. So, if we have a quadratic we also need to account for this...I'm not totally sure the right way, but in keeping with logic lets assume it's this:
+
+  #V_{i,x, x2} = V_{a} + 2x*C_{la} + 2x*C_{qa} + 2x*C_{lq} + x^2*V_{l} + x^2*V_{q}?
+  # Here is what I don't know, what to do about the quadratic??! Here l = linear slope, q = quadratic slope and a = intercept. So, for each of these random effect groups I belive that we need to actually form this same equation as above. So, lets just assume for G first
+
+  V_liz_g <- data.frame(VCV.3.2.DA) %>%
+              select(c(1,5,9))   # Variance in intercept, linear and quadratic slope
+
+  COV_liz_g <- data.frame(VCV.3.2.DA) %>%
+              select(c(2,3,6))   # Covariance among intercept, linear and quadratic slope
+
+# Now, we need to build an equation out of it!
+x = 1
+V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
+
+# Now, because x = 0, this is g in the average environment, which is basically just the intercept!
+#We can check: V_g ==V_liz_g[1]
+
+# Now, we need to do exactly the same for EACH grouping cluster, lets try damID
+
+
+  V_dam_g <- data.frame(VCV.3.2.DA) %>%
+              select(c(10,14,18))   # Variance in intercept, linear and quadratic slope
+
+# Fonti I stopped here
+  COV_dam_g <- data.frame(VCV.3.2.DA) %>%
+              select(c(6:8))   
+
+V_dam <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
   
+
+h2 <- V_g / (V_g + V_dam + units)
+
 posterior_summary(Vtotal_p)
 posterior_summary(V_total)
 
