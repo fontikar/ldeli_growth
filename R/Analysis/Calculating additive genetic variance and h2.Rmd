@@ -18,12 +18,12 @@ pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, M
 
 #Read in dataset
 #Complete
-data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
+data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
 str(data)
 dim(data)
 
 #Read in models
-mod.3.2.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.3.2.DA")
+mod.3.2.DA <- readRDS("./output/rds/mod.3.2.DA")
 Sol.3.2.DA <- mod.3.2.DA$Sol
 VCV.3.2.DA <- mod.3.2.DA$VCV
 ```
@@ -53,8 +53,22 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
   VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.dam_id"] + #Dam variance in slope
   VCV.3.2.DA[,"I(z_days_since_hatch^2):I(z_days_since_hatch^2).dam_id"] + #Dam variance in curve
   VCV.3.2.DA[,"units"] #residuals
+
+
+  # Fonti - I think you need to also add in the covariances, try this simplified version.
+
+  Var_i <- data.frame(VCV.3.2.DA) %>%
+              select(c(1,5,9,10,14,18,19))  # Extract variance columns
+  Cov_i <- data.frame(VCV.3.2.DA) %>%
+              select(-c(1,5,9,10,14,18,19)) # Extract covariance columns
+
+  # Total variance is sum of variances plus the sum of 2 times the covariances. This should give you the TOTAL variance in P (mass), but because this is an estimate of the population parameters it won't match your sample (i.e., lnMass data).
+  
+  V_total <- rowSums(Var_i) + rowSums(2*Cov_i) 
   
 posterior_summary(Vtotal_p)
+posterior_summary(V_total)
+
 ```
 
 #Total additive variance of growth
@@ -63,6 +77,22 @@ Question: Do we need to account for the covariance among growth curve parameters
 Vtotal_a <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in intercept
   VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] + #lizard variance in slope
   VCV.3.2.DA[,"I(z_days_since_hatch^2):I(z_days_since_hatch^2).liz_id"]  #lizard variance in curve
+
+# Yes, whether we need to account for covariance here is a little uncertain. If we want the total genetic variance in growth in an average environment, I would think we need to account for the covariance as well.
+
+
+  Var_a <- data.frame(VCV.3.2.DA) %>%
+              select(c(1,5,9))       # Just the variances for A
+  Cov_a <- data.frame(VCV.3.2.DA) %>%
+              select(c(2:4,6:8))     # Just the covariance for A
+
+  V_a <- rowSums(Var_a) + rowSums(2*Cov_a)
+
+# Genetic variation in growth
+
+  Growth_G <- V_a / V_total
+  posterior_summary(Growth_G)
+
 
 posterior_summary(Vtotal_a)
 ```
