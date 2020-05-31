@@ -78,6 +78,9 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
 #############################################################
   ## ATTEMPT 2
 #############################################################
+  summary(mod.3.2.DA)
+  Sol.3.2.DA <- mod.3.2.DA$Sol
+  VCV.3.2.DA <- mod.3.2.DA$VCV
 
   # OK, I actually think that this is actually a little tricker than I originally thought, particularly so because we have quadratics at different grouping terms. Note we have also z transformed age, and this is important. So here we go with each ranom effect seperately
 
@@ -93,9 +96,18 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
   COV_liz_g <- data.frame(VCV.3.2.DA) %>%
               select(c(2,3,6))   # Covariance among intercept, linear and quadratic slope
 
-# Now, we need to build an equation out of it!
+# Now, we need to build an equation out of it! 
 x = 1
-V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
+V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + 
+    2*x*COV_liz_g[1]    # Intercept and Linear slope
++ 2*x^2*COV_liz_g[2] # Intercept and Quadratic slope
++ 2*x^3*COV_liz_g[3] # Linear and Quadratic slope
+
+# OK, a little explanation. We were close, but not quite correct in this case. So, fr all the covariances you have to multiple by 2. The reason why is that, for each covariance you have 2 ways to get it. For example, cov(intercept, slope)and cov(slope,intercept). Think about a matrix. The upper and lower triangles. Now, the reason why x^ changes is because for cov(intercept, slope) term you only have 1 x term. For the cov(intercept, quadratic) we have one x term, but that x term is squared. So, hence why we have x^2. Now, for the cov(linear, quadratic), you have two x, one of which is just 1x and the second of which is x^2. So, x * x^2 = x^3. Hence why we have this. The variance term for quadratic is correct because (x^2)^2 = x^4.
+
+## One way to check that the above equation is correct is to simply CHECK THAT DENOMINATOR VARIANCE IN LNMASS for h2 calculations is = or is CLOSE TO lnMASS IN RAW DATA. DENOMINATOR WILL PROBABLY BE BIGGER THAN RESPONSE. Fonti, please check.
+
+head(V_g)
 
 # Now, because x = 0, this is g in the average environment, which is basically just the intercept!
 #We can check: V_g ==V_liz_g[1]
@@ -108,15 +120,21 @@ V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
   COV_dam_g <- data.frame(VCV.3.2.DA) %>%
               select(c(11, 12, 15))   
 
-V_dam <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
+V_dam <- V_dam_g[1] + (x^2)*V_dam_g[2] + (x^4)*V_dam_g[3] + 
+2*x*COV_dam_g[1]    # Intercept and Linear slope
++ 2*x^2*COV_dam_g[2] # Intercept and Quadratic slope
++ 2*x^3*COV_dam_g[3] # Linear and Quadratic slope
 
 # Residual variance
-units <- VCV.3.2.DA[,"units"]
-  
-#Calculating age-specific heritability (x = 1, which means 1 SD away from mean = 336.841 days ~ a year old) #NB: Use backztran_DSH function
-h2 <- V_g / (V_g + V_dam + units)
+R <- VCV.3.2.DA[,"units"]
+
+h2 <- V_g / (V_g + V_dam + R)
 
 posterior_summary(h2)
+  
+#Calculating age-specific heritability (x = 1, which means 1 SD away from mean = 336.841 days ~ a year old) #NB: Use backztran_DSH function
+
+
 posterior_summary(Vtotal_p)
 posterior_summary(V_total)
 
