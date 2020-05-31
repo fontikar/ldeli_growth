@@ -27,7 +27,14 @@ mod.3.2.DA <- readRDS("./output/rds/mod.3.2.DA")
 Sol.3.2.DA <- mod.3.2.DA$Sol
 VCV.3.2.DA <- mod.3.2.DA$VCV
 
-mod.3.2.DA.pe <- readRDS("./output/rds/mod.3.2.DA.pe")
+#Functions
+ztran_DsH <- function(day) {
+  (day - mean(data$days_since_hatch, na.rm = T)) / sd(data$days_since_hatch, na.rm = T)
+}
+
+backztran_DSH <- function(z_day_since_hatch){
+  (z_day_since_hatch * sd(data$days_since_hatch, na.rm = T)) + mean(data$days_since_hatch, na.rm = T)
+}
 ```
 
 From Shin's paper:
@@ -95,19 +102,21 @@ V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
 
 # Now, we need to do exactly the same for EACH grouping cluster, lets try damID
 
-
   V_dam_g <- data.frame(VCV.3.2.DA) %>%
               select(c(10,14,18))   # Variance in intercept, linear and quadratic slope
 
-# Fonti I stopped here
   COV_dam_g <- data.frame(VCV.3.2.DA) %>%
-              select(c(6:8))   
+              select(c(11, 12, 15))   
 
 V_dam <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + rowSums(2*x*COV_liz_g)
-  
 
+# Residual variance
+units <- VCV.3.2.DA[,"units"]
+  
+#Calculating age-specific heritability (x = 1, which means 1 SD away from mean = 336.841 days ~ a year old) #NB: Use backztran_DSH function
 h2 <- V_g / (V_g + V_dam + units)
 
+posterior_summary(h2)
 posterior_summary(Vtotal_p)
 posterior_summary(V_total)
 
