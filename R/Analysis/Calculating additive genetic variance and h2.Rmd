@@ -27,8 +27,14 @@ mod.3.2.DA <- readRDS("./output/rds/mod.3.2.DA")
 Sol.3.2.DA <- mod.3.2.DA$Sol
 VCV.3.2.DA <- mod.3.2.DA$VCV
 
+#Read in model with treatment as the only fixed effect
+mod.3.2.DA.treat.pe.dam <- readRDS("output/rds/mod.3.2.DA.treat.pe.dam")
+
+#Read in model no treatment effect
+mod.3.2.DA.intercept.pe.dam <- readRDS("output/rds/mod.3.2.DA.intercept.pe.dam")
+
 #Functions
-ztran_DsH <- function(day) {
+ztran_DSH <- function(day) {
   (day - mean(data$days_since_hatch, na.rm = T)) / sd(data$days_since_hatch, na.rm = T)
 }
 
@@ -52,8 +58,7 @@ Vp = Vi + Vr ? Is this correct or do we have to include fixed effects as per pap
 "Adjusted" Vp = Vi + Vdam + Vresiduals ?
 Narrow h2 in intercepts =  Vi/Vp ?
 
-#Total phenotypic variance of growth
-Question: Do we need to account for the covariance among growth curve parameters? 
+#Variance components of growth
 ```{r}
 Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in intercept
   VCV.3.2.DA[,"z_days_since_hatch:z_days_since_hatch.liz_id"] + #lizard variance in slope
@@ -75,6 +80,9 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
   
   V_total <- rowSums(Var_i) + rowSums(2*Cov_i) 
 
+posterior_summary(Vtotal_p)
+posterior_summary(V_total)
+
 #############################################################
   ## ATTEMPT 2
 #############################################################
@@ -95,17 +103,15 @@ Vtotal_p <- VCV.3.2.DA[,"(Intercept):(Intercept).liz_id"]  + #lizard variance in
 
   COV_liz_g <- data.frame(VCV.3.2.DA) %>%
               select(c(2,3,6))   # Covariance among intercept, linear and quadratic slope
-
-# Now, we need to build an equation out of it! 
-x = 1
-V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + 
-    2*x*COV_liz_g[1]    # Intercept and Linear slope
-+ 2*x^2*COV_liz_g[2] # Intercept and Quadratic slope
-+ 2*x^3*COV_liz_g[3] # Linear and Quadratic slope
+  
+  # Now, we need to build an equation out of it! 
+  x = 1
+  V_g <- V_liz_g[1] + (x^2)*V_liz_g[2] + (x^4)*V_liz_g[3] + 
+    2*x*COV_liz_g[1] +    # Intercept and Linear slope
+    2*(x^2)*COV_liz_g[2] + # Intercept and Quadratic slope
+    2*(x^3)*COV_liz_g[3] # Linear and Quadratic slope
 
 # OK, a little explanation. We were close, but not quite correct in this case. So, fr all the covariances you have to multiple by 2. The reason why is that, for each covariance you have 2 ways to get it. For example, cov(intercept, slope)and cov(slope,intercept). Think about a matrix. The upper and lower triangles. Now, the reason why x^ changes is because for cov(intercept, slope) term you only have 1 x term. For the cov(intercept, quadratic) we have one x term, but that x term is squared. So, hence why we have x^2. Now, for the cov(linear, quadratic), you have two x, one of which is just 1x and the second of which is x^2. So, x * x^2 = x^3. Hence why we have this. The variance term for quadratic is correct because (x^2)^2 = x^4.
-
-## One way to check that the above equation is correct is to simply CHECK THAT DENOMINATOR VARIANCE IN LNMASS for h2 calculations is = or is CLOSE TO lnMASS IN RAW DATA. DENOMINATOR WILL PROBABLY BE BIGGER THAN RESPONSE. Fonti, please check.
 
 head(V_g)
 
@@ -120,25 +126,217 @@ head(V_g)
   COV_dam_g <- data.frame(VCV.3.2.DA) %>%
               select(c(11, 12, 15))   
 
-V_dam <- V_dam_g[1] + (x^2)*V_dam_g[2] + (x^4)*V_dam_g[3] + 
-2*x*COV_dam_g[1]    # Intercept and Linear slope
-+ 2*x^2*COV_dam_g[2] # Intercept and Quadratic slope
-+ 2*x^3*COV_dam_g[3] # Linear and Quadratic slope
+  V_dam <- V_dam_g[1] + (x^2)*V_dam_g[2] + (x^4)*V_dam_g[3] + 
+    2*x*COV_dam_g[1] +  # Intercept and Linear slope
+    2*(x^2)*COV_dam_g[2] +  # Intercept and Quadratic slope
+    2*(x^3)*COV_dam_g[3] # Linear and Quadratic slope
 
 # Residual variance
 R <- VCV.3.2.DA[,"units"]
 
-h2 <- V_g / (V_g + V_dam + R)
+## One way to check that the above equation is correct is to simply CHECK THAT DENOMINATOR VARIANCE IN LNMASS for h2 calculations is = or is CLOSE TO lnMASS IN RAW DATA. DENOMINATOR WILL PROBABLY BE BIGGER THAN RESPONSE. Fonti, please check.
+Vf <- var(as.vector(apply(mod.3.2.DA$Sol,2,mean) %*% t(mod.3.2.DA$X)))
 
-posterior_summary(h2)
+#Poster for Vf - does the above calculation for each iteration
+postVarF <- numeric(nrow(mod.3.2.DA$VCV)) 
+for(i in 1:nrow(mod.3.2.DA$VCV)){
+  Var <- var(as.vector(mod.3.2.DA$Sol[i,] %*% t(mod.3.2.DA$X)))
+  postVarF[i] <- Var}
+
+
+sd(data$lnMass, na.rm = T)^2 -  posterior_summary(Vf + V_g + V_dam + R)[1]
   
 #Calculating age-specific heritability (x = 1, which means 1 SD away from mean = 336.841 days ~ a year old) #NB: Use backztran_DSH function
-
-
-posterior_summary(Vtotal_p)
-posterior_summary(V_total)
-
 ```
+
+## Make some functions to calculate these variance components and heritabilty over varying x
+
+#Getting Vi and Vdam
+```{r}
+#Function for variance for individual, additive genetic variance
+group_var = "liz_id"
+model = mod.3.2.DA.treat.pe.dam
+x = ztran_DSH(0)
+
+get_V_g <- function(model, x, group_var){
+  VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  if(group_var == "liz_id"){
+  V <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COV <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  }
+  
+  if(group_var == "dam_id"){
+  V <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COV <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  }
+
+  
+  # Now, add everything together while accounting for covariances and their powers
+  V_g <- V[1] + (x^2)*V[2] + (x^4)*V[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COV[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COV[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COV[3] # Covariance of linear and quadratic slope
+  
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   group_id = group_var,
+                   Estimate = posterior_summary(V_g)[1],
+                   Lower =  posterior_summary(V_g)[3],
+                   Upper =  posterior_summary(V_g)[4])
+  return(df)
+}
+
+#Test this
+get_V_g(model = mod.3.2.DA.treat.pe.dam,
+        x = ztran_DSH(0),
+        group_var = "dam_id") 
+
+#Expand this
+#Days since hatch in original scale for 0  30  60  90 120 150 180 210 240 270 300 330 360
+seq(0, 360, 30) #Every month for the first year in original scale
+z_days <- ztran_DSH(seq(0, 360, 30)) #Every month for the first year in z scale
+
+lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "liz_id")) %>% bind_rows()
+lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "dam_id")) %>% bind_rows()
+```
+
+#Getting total phenotypic variance
+Either account for VFixed or use model with no fixed effects
+Whats wrong with just calculating 'adjusted' Vtotal phenptyic variance i.e. removing variance of treatment.
+```{r}
+#Start with total phenotypic variance
+get_VtotalP <- function(model, x){
+  VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Among ID variance
+    Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COVliz <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  
+    Vi <- Vliz[1] + (x^2)*Vliz[2] + (x^4)*Vliz[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVliz[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVliz[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVliz[3] # Covariance of linear and quadratic slope
+  
+  #Among Dam variance
+    Vdam <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COVdam <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  
+     Vmaternal <- Vdam[1] + (x^2)*Vdam[2] + (x^4)*Vdam[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVdam[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVdam[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVdam[3] # Covariance of linear and quadratic slope
+  
+  #Permanent Environmeny variance
+  Vpe <- VCV %>% select(19)   # Extract the variance 
+  
+  #Residuals
+  Vresid <- VCV %>% select(20)   # Extract the variance 
+  
+  #Calculate total phenotypic variance
+  VtotalP <- Vi + Vmaternal + Vpe + Vresid
+
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   group_id = "Total_variance",
+                   Estimate = posterior_summary(VtotalP)[1],
+                   Lower =  posterior_summary(VtotalP)[3],
+                   Upper =  posterior_summary(VtotalP)[4])
+  return(df)
+}
+
+#Test this
+get_VtotalP(model = mod.3.2.DA.intercept.pe.dam, #Using the model with not fixed effects
+            x = ztran_DSH(0)) 
+
+#Expand this
+lapply(z_days, function(x) get_VtotalP(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+```
+
+#Function to calculate heritability and get the upper and lower
+```{r}
+get_h2 <- function(model, x){
+    VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Among ID variance
+    Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COVliz <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  
+    Vi <- Vliz[1] + (x^2)*Vliz[2] + (x^4)*Vliz[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVliz[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVliz[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVliz[3] # Covariance of linear and quadratic slope
+  
+  #Among Dam variance
+    Vdam <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COVdam <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  
+     Vmaternal <- Vdam[1] + (x^2)*Vdam[2] + (x^4)*Vdam[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVdam[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVdam[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVdam[3] # Covariance of linear and quadratic slope
+  
+  #Permanent Environmeny variance
+  Vpe <- VCV %>% select(19)   # Extract the variance 
+  
+  #Residuals
+  Vresid <- VCV %>% select(20)   # Extract the variance 
+  
+  #Calculate total phenotypic variance
+  VtotalP <- Vi + Vmaternal + Vpe + Vresid
+  
+  #Calculate heritability
+  h2 <- Vi / VtotalP
+
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   group_id = "h2",
+                   Estimate = posterior_summary(h2)[1],
+                   Lower =  posterior_summary(h2)[3],
+                   Upper =  posterior_summary(h2)[4])
+  return(df)
+}
+
+#Test this
+get_h2(model = mod.3.2.DA.intercept.pe.dam, #Using the model with not fixed effects
+            x = ztran_DSH(0)) 
+
+#Expand this
+lapply(z_days, function(x) get_h2(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+```
+
+#Try plot this out
+```{r}
+Vi <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "liz_id")) %>% bind_rows()
+Vdam <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "dam_id")) %>% bind_rows()
+h2_dat <- lapply(z_days, function(x) get_h2(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+Vtot <- lapply(z_days, function(x) get_VtotalP(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+
+all_V_comps <- bind_rows(Vi, 
+                         Vdam, 
+                         Vtot,
+                         h2_dat)
+
+all_V_comps$group_id <- as.factor(all_V_comps$group_id)
+all_V_comps$group_id <- factor(all_V_comps$group_id, levels = c("liz_id", "dam_id", "Total_variance","h2"))
+
+ggplot(data = all_V_comps,
+       aes(x = day, y = Estimate)) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.2) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity") +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F, colour = "black") + 
+  facet_wrap(~group_id) + 
+  scale_x_continuous(breaks = seq(0, 360, 60)) + 
+  ylab("Variance") + 
+  xlab("Age") + 
+  theme_bw() 
+```
+
+
+
 
 #Total additive variance of growth
 Question: Do we need to account for the covariance among growth curve parameters? 
@@ -170,9 +368,9 @@ posterior_summary(Vtotal_a)
 h2 = Va / (Vp 
 Question: Do we need to account for the covariance among growth curve parameters? 
 ```{r}
-h2_growth <- Vtotal_a / Vtotal_p
+h2 <- V_g / (V_g + V_dam + R)
 
-posterior_summary(h2_growth)
+posterior_summary(h2)
 ```
 
 #What if we wanted to additive genetic variance of specific growth parametrs and calculate heritability for each parameter? 
