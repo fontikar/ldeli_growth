@@ -23,9 +23,10 @@ str(data)
 dim(data)
 
 #Read in models
-mod.3.2.DA <- readRDS("./output/rds/mod.3.2.DA")
-Sol.3.2.DA <- mod.3.2.DA$Sol
-VCV.3.2.DA <- mod.3.2.DA$VCV
+#Read in fixed effect models
+mod.5.DA <- readRDS("output/rds/mod.5.DA")
+mod.5.1.DA <- readRDS("output/rds/mod.5.1.DA")
+mod.5.2.DA <- readRDS("output/rds/mod.5.2.DA")
 
 #Read in model with treatment as the only fixed effect
 mod.3.2.DA.treat.pe.dam <- readRDS("output/rds/mod.3.2.DA.treat.pe.dam")
@@ -41,6 +42,8 @@ ztran_DSH <- function(day) {
 backztran_DSH <- function(z_day_since_hatch){
   (z_day_since_hatch * sd(data$days_since_hatch, na.rm = T)) + mean(data$days_since_hatch, na.rm = T)
 }
+
+wesanderson::wes_palette("Darjeeling1") %>% str()
 ```
 
 From Shin's paper:
@@ -205,9 +208,19 @@ lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group
 Either account for VFixed or use model with no fixed effects
 Whats wrong with just calculating 'adjusted' Vtotal phenptyic variance i.e. removing variance of treatment.
 ```{r}
-#Start with total phenotypic variance
-get_VtotalP <- function(model, x){
+#Start with total phenotypic variance accounting for fixed effects
+model = mod.3.2.DA.treat.pe.dam #Using the model with not fixed effects
+x = ztran_DSH(0)
+
+
+get_VtotalP_FE <- function(model, x){
   VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Fixed effects
+  postVarF <- numeric(nrow(model$VCV)) 
+for(i in 1:nrow(model$VCV)){
+  Var <- var(as.vector(model$Sol[i,] %*% t(model$X)))
+  postVarF[i] <- Var}
   
   #Among ID variance
     Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
@@ -234,6 +247,46 @@ get_VtotalP <- function(model, x){
   Vresid <- VCV %>% select(20)   # Extract the variance 
   
   #Calculate total phenotypic variance
+  VtotalP <- postVarF + Vi + Vmaternal + Vpe + Vresid 
+
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   group_id = "Total_variance",
+                   Estimate = posterior_summary(VtotalP)[1],
+                   Lower =  posterior_summary(VtotalP)[3],
+                   Upper =  posterior_summary(VtotalP)[4])
+  return(df)
+}
+
+get_VtotalP <- function(model, x){
+  VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Among ID variance
+    Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COVliz <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  
+    Vi <- Vliz[1] + (x^2)*Vliz[2] + (x^4)*Vliz[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVliz[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVliz[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVliz[3] # Covariance of linear and quadratic slope
+  
+  #Among Dam variance
+    Vdam <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COVdam <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  
+     Vmaternal <- Vdam[1] + (x^2)*Vdam[2] + (x^4)*Vdam[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVdam[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVdam[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVdam[3] # Covariance of linear and quadratic slope
+  
+  #Permanent Environmeny variance
+  Vpe <- VCV %>% select(19)   # Extract the variance 
+  
+  
+  #Residuals
+  Vresid <- VCV %>% select(20)   # Extract the variance 
+  
+  #Calculate total phenotypic variance
   VtotalP <- Vi + Vmaternal + Vpe + Vresid
 
   df <- data.frame(z_day = x,
@@ -247,6 +300,9 @@ get_VtotalP <- function(model, x){
 
 #Test this
 get_VtotalP(model = mod.3.2.DA.intercept.pe.dam, #Using the model with not fixed effects
+            x = ztran_DSH(0)) 
+
+get_VtotalP_FE(model = mod.3.2.DA.intercept.pe.dam, #Using the model with not fixed effects
             x = ztran_DSH(0)) 
 
 #Expand this
@@ -297,12 +353,62 @@ get_h2 <- function(model, x){
   return(df)
 }
 
+get_h2_FE <- function(model, x){
+  VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Fixed effects
+  postVarF <- numeric(nrow(model$VCV)) 
+  for(i in 1:nrow(model$VCV)){
+    Var <- var(as.vector(model$Sol[i,] %*% t(model$X)))
+    postVarF[i] <- Var}
+  
+  #Among ID variance
+  Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COVliz <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  
+  Vi <- Vliz[1] + (x^2)*Vliz[2] + (x^4)*Vliz[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVliz[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVliz[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVliz[3] # Covariance of linear and quadratic slope
+  
+  #Among Dam variance
+  Vdam <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COVdam <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  
+  Vmaternal <- Vdam[1] + (x^2)*Vdam[2] + (x^4)*Vdam[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVdam[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVdam[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVdam[3] # Covariance of linear and quadratic slope
+  
+  #Permanent Environmeny variance
+  Vpe <- VCV %>% select(19)   # Extract the variance 
+  
+  #Residuals
+  Vresid <- VCV %>% select(20)   # Extract the variance 
+  
+  #Calculate total phenotypic variance
+  VtotalP <- Vi + Vmaternal + Vpe + Vresid + postVarF
+  
+  #Calculate heritability
+  h2 <- Vi / VtotalP
+  
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   group_id = "h2",
+                   Estimate = posterior_summary(h2)[1],
+                   Lower =  posterior_summary(h2)[3],
+                   Upper =  posterior_summary(h2)[4])
+  return(df)
+}
+
 #Test this
 get_h2(model = mod.3.2.DA.intercept.pe.dam, #Using the model with not fixed effects
             x = ztran_DSH(0)) 
 
 #Expand this
-lapply(z_days, function(x) get_h2(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+lapply(z_days, function(x) get_h2(model = mod.3.2.DA.intercept.pe.dam, x = x)) %>% bind_rows()
+lapply(z_days, function(x) get_h2_FE(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+
 ```
 
 #Try plot this out
@@ -335,6 +441,189 @@ ggplot(data = all_V_comps,
   theme_bw() 
 ```
 
+#I want to estimate from a model that has treatment in the fixed effeects and then calculate VFixed and include that in total phenotypic variance
+
+```{r}
+summary(mod.3.2.DA.treat.pe.dam)
+
+## One way to check that the above equation is correct is to simply CHECK THAT DENOMINATOR VARIANCE IN LNMASS for h2 calculations is = or is CLOSE TO lnMASS IN RAW DATA. DENOMINATOR WILL PROBABLY BE BIGGER THAN RESPONSE. Fonti, please check.
+
+get_Vfixed <- function(model){
+  #Poster for Vf - does the above calculation for each iteration
+postVarF <- numeric(nrow(model$VCV)) 
+for(i in 1:nrow(model$VCV)){
+  Var <- var(as.vector(model$Sol[i,] %*% t(model$X)))
+  postVarF[i] <- Var}
+  
+df <- data.frame(Estimate = posterior_summary(postVarF)[1],
+                   Lower =  posterior_summary(postVarF)[3],
+                   Upper =  posterior_summary(postVarF)[4])
+  return(df)
+}
+
+test <- get_Vfixed(mod.3.2.DA.treat.pe.dam)
+```
+
+#Compare estimates from model with fixed effects and from intercept model only
+
+Conclusion they are the same, just different in how to slice for the pie
+```{r}
+#Intercept only
+Vi <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.intercept.pe.dam, x = x, group_var = "liz_id")) %>% bind_rows()
+Vdam <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.intercept.pe.dam, x = x, group_var = "dam_id")) %>% bind_rows()
+h2_dat <- lapply(z_days, function(x) get_h2(model = mod.3.2.DA.intercept.pe.dam, x = x)) %>% bind_rows()
+Vtot <- lapply(z_days, function(x) get_VtotalP(model = mod.3.2.DA.intercept.pe.dam, x = x)) %>% bind_rows()
+
+intercept_only <- bind_rows(Vi,
+                            Vdam,
+                            h2_dat,
+                            Vtot)
+
+intercept_only$model <- "intercept"
+
+#Treatment fixed effects
+Vi_2 <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "liz_id")) %>% bind_rows()
+Vdam_2 <- lapply(z_days, function(x) get_V_g(model = mod.3.2.DA.treat.pe.dam, x = x, group_var = "dam_id")) %>% bind_rows()
+h2_dat_2 <- lapply(z_days, function(x) get_h2_FE(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+Vtot_2 <- lapply(z_days, function(x) get_VtotalP_FE(model = mod.3.2.DA.treat.pe.dam, x = x)) %>% bind_rows()
+
+treatment_FE <- bind_rows(Vi_2,
+                          Vdam_2,
+                          h2_dat_2,
+                          Vtot_2)
+
+treatment_FE$model <- "treatment"
+
+compare <- bind_rows(intercept_only, treatment_FE)
+
+ggplot(data = compare,
+       aes(x = day, y = Estimate, colour = factor(model))) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.2) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity") +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F) + 
+  facet_wrap(~group_id) + 
+  scale_x_continuous(breaks = seq(0, 360, 60)) + 
+  ylab("Variance") + 
+  xlab("Age") + 
+  theme_bw() 
+
+```
+
+#Calculate Va, Vdam h2 for hot and cold lizards
+
+```{r}
+hot_Va <- lapply(z_days, function(x) get_V_g(model = hot.5.2.DA, x = x, group_var = "liz_id")) %>% bind_rows()
+hot_Vdam <- lapply(z_days, function(x) get_V_g(model = hot.5.2.DA, x = x, group_var = "dam_id")) %>% bind_rows()
+hot_h2 <- lapply(z_days, function(x) get_h2(model = hot.5.2.DA, x = x)) %>% bind_rows()
+hot_Vtot <- lapply(z_days, function(x) get_VtotalP(model = hot.5.2.DA, x = x)) %>% bind_rows()
+
+hot_V <- bind_rows(hot_Va,
+                    hot_Vdam,
+                    hot_h2,
+                    hot_Vtot)
+
+hot_V$treatment <- "hot"
+
+cold_Va <- lapply(z_days, function(x) get_V_g(model = cold.5.2.DA, x = x, group_var = "liz_id")) %>% bind_rows()
+cold_Vdam <- lapply(z_days, function(x) get_V_g(model = cold.5.2.DA, x = x, group_var = "dam_id")) %>% bind_rows()
+cold_h2 <- lapply(z_days, function(x) get_h2(model = cold.5.2.DA, x = x)) %>% bind_rows()
+cold_Vtot <- lapply(z_days, function(x) get_VtotalP(model = cold.5.2.DA, x = x)) %>% bind_rows()
+
+cold_V <- bind_rows(cold_Va,
+                    cold_Vdam,
+                    cold_h2,
+                    cold_Vtot)
+
+cold_V$treatment <- "cold"
+
+treatment_compare <- bind_rows(cold_V, hot_V)
+
+#Labels for plot
+group_var_labs <- c("Additive genetic variance", "Dam variance", "Heritability", "Total phenotypic variance")
+names(group_var_labs) <- unique(treatment_compare$group_id)
+
+#Change order
+treatment_compare$group_id<- factor(treatment_compare$group_id , levels = c("liz_id", "h2", "dam_id", "Total_variance"))
+treatment_compare$treatment<- factor(treatment_compare$treatment , levels = c("cold", "hot"), labels = c("Cold", "Hot"))
+
+#The plot
+ggplot(data = treatment_compare,
+       aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity", alpha = 0.1) +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F, size = 1) + 
+  facet_wrap(~group_id, labeller = labeller(group_id = group_var_labs)) + 
+  scale_x_continuous(breaks = seq(0, 500, 60)) + 
+  scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
+    labs(x = "Age",
+       y = "Variance of Mass",
+       title = "Relative contribution of variance over age",
+       colour =  "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "bottom")
+```
+
+#Functions to get marginalised values
+```{r}
+model = cold.5.2.DA
+x = 5
+
+get_h2_posterior <- function(model, x){
+    VCV <- as.data.frame(model$VCV) #Take the VCV
+  
+  #Among ID variance
+    Vliz <- VCV %>% select(c(1,5,9))   # Extract the variance of intercept, linear and quadratic slope
+  COVliz <- VCV %>% select(c(2,3,6))   # Extract the covariance among intercept, linear and quadratic slope
+  
+    Vi <- Vliz[1] + (x^2)*Vliz[2] + (x^4)*Vliz[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVliz[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVliz[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVliz[3] # Covariance of linear and quadratic slope
+  
+  #Among Dam variance
+    Vdam <- VCV %>% select(c(10,14,18))   # Extract the variance of intercept, linear and quadratic slope
+  COVdam <- VCV %>% select(c(11,12,15))   # Extract the covariance among intercept, linear and quadratic slope
+  
+     Vmaternal <- Vdam[1] + (x^2)*Vdam[2] + (x^4)*Vdam[3] +  #The variances of the intercept and linear and quadratic slope
+    2*x*COVdam[1] +    # Covariance of intercept and linear slope
+    2*(x^2)*COVdam[2] + # Covariance of intercept and quadratic slope
+    2*(x^3)*COVdam[3] # Covariance of linear and quadratic slope
+  
+  #Permanent Environmeny variance
+  Vpe <- VCV %>% select(19)   # Extract the variance 
+  
+  #Residuals
+  Vresid <- VCV %>% select(20)   # Extract the variance 
+  
+  #Calculate total phenotypic variance
+  VtotalP <- Vi + Vmaternal + Vpe + Vresid
+  
+  #Calculate heritability
+  h2 <- Vi / VtotalP
+
+  df <- data.frame(z_day = x,
+                   day = backztran_DSH(x),
+                   posterior = h2)
+  return(df)
+}
+
+
+z_days <- ztran_DsH(seq(0, 500, 30))
+cold_h2_post <- lapply(z_days, function(x) get_h2_posterior(model = cold.5.2.DA, x = x)) %>% bind_rows()
+hot_h2_post <- lapply(z_days, function(x) get_h2_posterior(model = hot.5.2.DA, x = x)) %>% bind_rows()
+
+#Marginalised mean
+posterior_summary(as.matrix(cold_h2_post[3]))
+posterior_summary(as.matrix(hot_h2_post[3]))
+
+```
 
 
 
