@@ -39,6 +39,8 @@ Sequences from all lanes were then processed using DArT specific pipelines. The 
 One individual was excluded from the dataset and may be related to contamination as this individual appeared to be unrelated to any other samples in the dataset.
 
 ## Model fitting and selection of random effects structure
+The first model we fitted included an interaction between treatment and the linear and quadratic component of the mass growth curve in the fixed effects. We then subsequently dropped non-signficant interactions in a stepwise manner. The second model only had an interaction between treatment and the linear component of the growth curve and finally the third model had the main effect of treatment in the model and no interactions with the growth curve components. Coefficient estimates from all three models are provided in Table. S2-4.
+
 ```{r, echo = FALSE, warning = FALSE}
 #Read in models
 mod.4.1.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.4.1.DA")
@@ -48,8 +50,8 @@ mod.4.4.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.4.4
 mod.4.6.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.4.6.DA")
 mod.4.5.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.4.5.DA")
 
-re_dic <- data.frame(matrix(nrow = 6, ncol = 2))
-colnames(re_dic) <- c("formula", "DIC")
+re_dic <- data.frame(matrix(nrow = 6, ncol = 3))
+colnames(re_dic) <- c("Model", "DIC", "delta_DIC")
 
 m.4.5 <- summary(mod.4.5.DA)$random.formula #null
 m4.1 <- summary(mod.4.1.DA)$random.formula #quadractic all
@@ -60,12 +62,12 @@ m4.3 <- summary(mod.4.3.DA)$random.formula #fix dam
 m4.6 <- summary(mod.4.6.DA)$random.formula #fix PE
 
 
-re_dic[1,1] <- c("intercepts for liz_id, dam_id, id") #format(m.4.5)
-re_dic[2,1] <-  c("quadratic slopes for liz_id, dam_id, id") #paste0(format(m4.1)[1], trimws(format(m4.1)[2]), trimws(format(m4.1)[3]))
-re_dic[3,1] <-  c("linear slopes for liz_id, dam_id, id") #paste0(format(m4.2)[1], trimws(format(m4.2)[2]))
-re_dic[4,1] <- c("intercept for liz_id, linear slopes for dam_id, id") #format(m4.4)
-re_dic[5,1] <-  c("intercept for dam_id, linear slopes for liz_id, id") #format(m4.3)[1]
-re_dic[6,1] <- c("intercept for id, linear slopes for liz_id, dam_id")#paste0(format(m4.6)[1], trimws(format(m4.6)[2]))
+re_dic[1,1] <- c("Model 1 - intercepts for G, M, PE") #format(m.4.5)
+re_dic[2,1] <-  c("Model 2 - quadratic slopes for G, M, PE") #paste0(format(m4.1)[1], trimws(format(m4.1)[2]), trimws(format(m4.1)[3]))
+re_dic[3,1] <-  c("Model 3 - linear slopes for G, M, PE") #paste0(format(m4.2)[1], trimws(format(m4.2)[2]))
+re_dic[4,1] <- c("Model 4 - intercept for G, linear slopes for M, PE") #format(m4.4)
+re_dic[5,1] <-  c("Model 5 - intercept for M, linear slopes for G, PE") #format(m4.3)[1]
+re_dic[6,1] <- c("Model 6 - intercept for PE, linear slopes for G, M")#paste0(format(m4.6)[1], trimws(format(m4.6)[2]))
 
 re_dic[1,2] <- mod.4.5.DA$DIC
 re_dic[2,2] <- mod.4.1.DA$DIC
@@ -73,61 +75,67 @@ re_dic[3,2] <- mod.4.2.DA$DIC
 re_dic[4,2] <- mod.4.4.DA$DIC
 re_dic[5,2] <- mod.4.3.DA$DIC
 re_dic[6,2] <- mod.4.6.DA$DIC
+
+re_dic[1,3] <- mod.4.5.DA$DIC - mod.4.5.DA$DIC
+re_dic[2,3] <- mod.4.5.DA$DIC - mod.4.1.DA$DIC
+re_dic[3,3] <- mod.4.5.DA$DIC - mod.4.2.DA$DIC
+re_dic[4,3] <- mod.4.5.DA$DIC - mod.4.4.DA$DIC
+re_dic[5,3] <- mod.4.5.DA$DIC - mod.4.3.DA$DIC
+re_dic[6,3] <- mod.4.5.DA$DIC - mod.4.6.DA$DIC
 ```
 
 ```{r, echo = FALSE}
 pander(re_dic,
-       justify = "lc",
+       justify = "lcc",
        split.cell = 80,
-       caption = "S1 DIC of six intercept models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance")
+       caption = "Table S1 DIC of six intercept models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance")
 ```
 
 ## Do growth tracjectories differ among incubation treatments?
 
 The first model we fitted included an interaction between treatment and the linear and quadratic component of the mass growth curve in the fixed effects. We then subsequently dropped non-signficant interactions in a stepwise manner. The second model only had an interaction between treatment and the linear component of the growth curve and finally the third model had the main effect of treatment in the model and no interactions with the growth curve components. Coefficient estimates from all three models are provided in Table. S2-4.
 ```{r, echo = FALSE, warning = FALSE}
-#Read in models
-mod.5.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.5.DA")
+mod.5.2.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.5.2.DA")
 
 #Combining the coefficients from the final model
-mod.5.DA.fixed <- posterior_summary(mod.5.DA$Sol)[,-2] %>% round(3) 
+mod.5.2.DA.fixed <- posterior_summary(mod.5.2.DA$Sol)[,-2] %>% round(3) 
 
-mod.5.DA.liz_id <- posterior_summary(mod.5.DA$VCV)[c(1,5,9,2,3,6),-2] %>% round(3)   #liz_id random effects
+mod.5.2.DA.liz_id <- posterior_summary(mod.5.2.DA$VCV)[c(1,5,9,2,3,6),-2] %>% round(3)   #liz_id random effects
 
-mod.5.DA.dam_id <- posterior_summary(mod.5.DA$VCV)[c(10,14,18,11,12,15),-2] %>% round(3) #dam_id random effects
+mod.5.2.DA.dam_id <- posterior_summary(mod.5.2.DA$VCV)[c(10,14,18,11,12,15),-2] %>% round(3) #dam_id random effects
 
-mod.5.DA.pe <- posterior_summary(mod.5.DA$VCV)[19,-2] %>% round(3) #pe random effects
+mod.5.2.DA.pe <- posterior_summary(mod.5.2.DA$VCV)[19,-2] %>% round(3) #pe random effects
 
-mod.5.DA.units <- posterior_summary(mod.5.DA$VCV)[20,-2] %>% round(3) #units
+mod.5.2.DA.units <- posterior_summary(mod.5.2.DA$VCV)[20,-2] %>% round(3) #units
 
 #Create a table
-mod.5.DA.coeffs <- as.data.frame(matrix(ncol = 4, nrow = 20))
-colnames(mod.5.DA.coeffs) <- c("Variable", "Estimate", "Lower", "Upper")
+mod.5.2.DA.coeffs <- as.data.frame(matrix(ncol = 4, nrow = 18))
+colnames(mod.5.2.DA.coeffs) <- c("Variable", "Estimate", "Lower", "Upper")
 
 #Create Variable names
-mod.5.DA.coeffs$Variable[1:6] <- rownames(mod.5.DA.fixed)
-mod.5.DA.coeffs$Variable[7:12] <- rownames(mod.5.DA.liz_id)
-mod.5.DA.coeffs$Variable[13:18] <- rownames(mod.5.DA.dam_id)
-mod.5.DA.coeffs$Variable[19] <- "V_pe"
-mod.5.DA.coeffs$Variable[20] <- "Residuals"
+mod.5.2.DA.coeffs$Variable[1:4] <- rownames(mod.5.2.DA.fixed)
+mod.5.2.DA.coeffs$Variable[5:10] <- rownames(mod.5.2.DA.liz_id)
+mod.5.2.DA.coeffs$Variable[11:16] <- rownames(mod.5.2.DA.dam_id)
+mod.5.2.DA.coeffs$Variable[17] <- "V_pe"
+mod.5.2.DA.coeffs$Variable[18] <- "Residuals"
 
 #Fill in table
-mod.5.DA.coeffs[1:6, 2:4] <- mod.5.DA.fixed
-mod.5.DA.coeffs[7:12, 2:4] <- mod.5.DA.liz_id
-mod.5.DA.coeffs[13:18, 2:4] <- mod.5.DA.dam_id
-mod.5.DA.coeffs[19, 2:4] <- mod.5.DA.pe
-mod.5.DA.coeffs[20, 2:4] <- mod.5.DA.units
+mod.5.2.DA.coeffs[1:4, 2:4] <- mod.5.2.DA.fixed
+mod.5.2.DA.coeffs[5:10, 2:4] <- mod.5.2.DA.liz_id
+mod.5.2.DA.coeffs[11:16, 2:4] <- mod.5.2.DA.dam_id
+mod.5.2.DA.coeffs[17, 2:4] <- mod.5.2.DA.pe
+mod.5.2.DA.coeffs[18, 2:4] <- mod.5.2.DA.units
 
 #Duplicate table to make nicer variable names for table
-Table_S2 <- mod.5.DA.coeffs
+Table_S2 <- mod.5.2.DA.coeffs
 
 #Create Variable names
-Table_S2$Variable[1:6] <- c("Intercept", "Treatment", "Age", "Age^2", "Treatment*Age", 
-                           "TreatmentAge^2")
-Table_S2$Variable[7:12] <- c("V_g intercept", "V_g  slope", "V_g  curvature", "Cov_g intercept - slope", 
+Table_S2$Variable[1:4] <- c("Intercept", "Treatment", "Age", "Age^2")
+
+Table_S2$Variable[5:10] <- c("V_g intercept", "V_g  slope", "V_g  curvature", "Cov_g intercept - slope", 
                             "Cov_g intercept - curvature", "Cov_g slope - curvature")
 
-Table_S2$Variable[13:18] <- c("V_m intercept", "V_m  slope", "V_m curvature", "Cov_m intercept - slope", 
+Table_S2$Variable[11:16] <- c("V_m intercept", "V_m  slope", "V_m curvature", "Cov_m intercept - slope", 
                             "Cov_m intercept - curvature", "Cov_m slope - curvature")
 ```
 
