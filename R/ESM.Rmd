@@ -270,8 +270,40 @@ We wanted to maximise the number of individuals in the dataset and not exclude l
 
 Conclusions of our results did not differ between using the original dataset vs. the augmented dataset (Table X -X, Fig X - X). Paramater estimates and credible intervals overlapped, we therefore present the results from models using the augmented dataset
 
-```{r}
+## The influence of developmental temperature on additive genetic variance and maternal effects across age 
 
+```{r, include = FALSE, echo = FALSE}
+#Model output coefficients for random intercept model
+hot.intercept.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot.intercept.DA")
+cold.intercept.DA <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold.intercept.DA")
+
+summary(hot.intercept.DA)
+summary(cold.intercept.DA)
+
+#Create table
+intercept.tab <- data.frame(matrix(nrow = 5, ncol = 7))
+#Names
+colnames(intercept.tab) <- c("Variable", "HOT_Estimate", "HOT_Lower", "HOT_Upper", 
+                             "COLD_Estimate", "COLD_Lower", "COLD_Upper")
+intercept.tab$Variable <- c("Fixed effects Intercept", "Variance G", "Variance Dam", "Variance PE", "h2")
+
+#Fill in table
+intercept.tab[1, 2:4] <- round(posterior_summary(hot.intercept.DA$Sol[,"(Intercept)"])[-2],4)
+intercept.tab[2, 2:4] <- round(posterior_summary(hot.intercept.DA$VCV[,"liz_id"])[-2],4)
+intercept.tab[3, 2:4] <- round(posterior_summary(hot.intercept.DA$VCV[,"dam_id"])[-2],4)
+intercept.tab[4, 2:4] <- round(posterior_summary(hot.intercept.DA$VCV[,"id"])[-2],4)
+
+hot_h2 <- hot.intercept.DA$VCV[,"liz_id"]  / (hot.intercept.DA$VCV[,"liz_id"] + hot.intercept.DA$VCV[,"dam_id"] +  hot.intercept.DA$VCV[,"id"] + hot.intercept.DA$VCV[,"units"])
+intercept.tab[5, 2:4] <- round(posterior_summary(hot_h2)[-2],4)
+
+intercept.tab[1, 5:7] <- round(posterior_summary(cold.intercept.DA$Sol[,"(Intercept)"])[-2],4)
+intercept.tab[2, 5:7] <- round(posterior_summary(cold.intercept.DA$VCV[,"liz_id"])[-2],4)
+intercept.tab[3, 5:7] <- round(posterior_summary(cold.intercept.DA$VCV[,"dam_id"])[-2],4)
+intercept.tab[4, 5:7] <- round(posterior_summary(cold.intercept.DA$VCV[,"id"])[-2],4)
+cold_h2 <- cold.intercept.DA$VCV[,"liz_id"]  / (cold.intercept.DA$VCV[,"liz_id"] + cold.intercept.DA$VCV[,"dam_id"] +  cold.intercept.DA$VCV[,"id"] + cold.intercept.DA$VCV[,"units"])
+intercept.tab[5, 5:7] <- round(posterior_summary(cold_h2)[-2],4)
+
+write.csv(intercept.tab, row.names = F, "output/tabs/Table_S4.csv")
 ```
 
 
