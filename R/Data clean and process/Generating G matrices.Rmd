@@ -29,6 +29,8 @@ pacman::p_load(dplyr, magrittr, ggplot2, purrr,  GGally, mice, janitor, MASS, pa
 ```{r}
 growth_data <- read.csv("data/growth/processed/analysis/Ldeli_quangen_growth.csv", stringsAsFactors = F)
 str(growth_data)
+
+data_DA <- read.csv("data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
 ```
 
 #Read in low quality data
@@ -118,6 +120,18 @@ rownames(Ga_inverse) <- colnames(Ga_inverse) <- data[match(rownames(Ga_inverse),
 
 write.csv(Ga_inverse, "output/G/InverseGa_SNPready.csv")
 
+#Write non-inverted version
+match(rownames(Ga), data$F1_Genotype)
+#Find liz_id for match
+data[match(rownames(Ga), data$F1_Genotype), "liz_id"] %>% length()
+#Replace row and col names
+rownames(Ga) <- colnames(Ga) <- data[match(rownames(Ga), data$F1_Genotype), "liz_id"]
+
+#Drop missing liz id
+which(colnames(Ga) %in% NA)
+Ga_compelte <- Ga[-c(which(colnames(Ga) %in% NA)), -c(which(colnames(Ga) %in% NA))] 
+
+write.csv(Ga_compelte, "output/G/Ga_SNPready.csv")
 	
 ################################################################
 
