@@ -1,0 +1,753 @@
+---
+title: 'ESM brms text for ldeli growth'
+author: Fonti Kar
+date: "`r Sys.Date()`"
+output: 
+  word_document:
+    reference_docx: "Style_guide.docx"
+---
+
+```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list=ls())
+sessionInfo()
+
+# R version 3.6.1 (2019-07-05)
+# Platform: x86_64-apple-darwin15.6.0 (64-bit)
+# Running under: macOS High Sierra 10.13.6
+
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp)
+
+#Read in dataset
+#Complete
+data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth.csv", stringsAsFactors = F)
+
+#Augmented
+data_DA <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
+
+#Functions
+ztran_DsH <- function(day) {
+  (day - mean(data$days_since_hatch, na.rm = T)) / sd(data$days_since_hatch, na.rm = T)
+}
+
+backztran_DSH <- function(z_day_since_hatch){
+  (z_day_since_hatch * sd(data$days_since_hatch, na.rm = T)) + mean(data$days_since_hatch, na.rm = T)
+}
+
+source("~/Dropbox/1 - PhD/4 - ldeli_growthrate/R/Analysis/brms functions.R")
+
+#ggplot theme
+my_theme <- theme(#legend.position = "none",
+  legend.position = "bottom",
+  legend.text =element_text(size = 14),
+  legend.title =element_text(size = 14, face = "bold"),
+  panel.grid.major = element_blank(), 
+  panel.grid.minor = element_blank(),
+  axis.text=element_text(size=16),
+  axis.title=element_text(size=16,face="bold"),
+  plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
+```
+
+## Model fitting and selection of random effects structure
+
+To then test how G, M and h2 change across age, we used model selection to determine the most appropriate random effects structure for our data as we had no a priori knowledge of how the variance components change with age. We fitted seven models with varying complexity in their random effects and compared their WAIC values (Table S1). We fitted random intercepts and random slopes by including either a linear age term or both linear and quadratic age terms to partition variance across age. Two models were equally supported, the first included a random linear and quadratic slope for G and M and PE. (Model 3, Table S1) and the second included a random linear and quadratic slope for G and M and a random intercept for PE (Model 7, Table S1). To avoid overfitting, we selected the more parsimonious model and used this random effect structure for the remaining analysis unless stated otherwise (Model 7).
+
+```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
+#Read in models
+mod.1 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.5")
+mod.2 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.2")
+mod.3 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.1")
+mod.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.4")
+mod.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.3")
+mod.6 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.6")
+mod.7 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.6")
+
+#Add waics
+w_mod.1 <- waic(mod.1)
+w_mod.2 <- waic(mod.2)
+w_mod.3 <- waic(mod.3)
+w_mod.4 <- waic(mod.4)
+w_mod.5 <- waic(mod.5)
+w_mod.6 <- waic(mod.6)
+w_mod.7 <- waic(mod.7)
+
+#Add loo
+loo_mod.1 <- loo(mod.1)
+loo_mod.2 <- loo(mod.2)
+loo_mod.3 <- loo(mod.3)
+loo_mod.4 <- loo(mod.4)
+loo_mod.5 <- loo(mod.5)
+loo_mod.6 <- loo(mod.6)
+loo_mod.7 <- loo(mod.7)
+
+#Compare
+loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)
+loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7)
+
+#Tabulating
+random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
+colnames(random_waic) <- c("Model", "wAIC", "elpd_diff", "se_diff")
+
+random_waic[1,1] <- c("Model 3 - quadratic slopes for G, M, PE") 
+random_waic[2,1] <- c("Model 7 - intercept for PE, quadratic slopes for G, M")
+random_waic[3,1] <- c("Model 4 - intercept for G, linear slopes for M, PE")
+random_waic[4,1] <- c("Model 2 - linear slopes for G, M, PE") 
+random_waic[5,1] <- c("Model 6 - intercept for PE, linear slopes for G, M")
+random_waic[6,1] <- c("Model 5 - intercept for M, linear slopes for G, PE")
+random_waic[7,1] <- c("Model 1 - intercepts for G, M, PE")
+
+#wAIC values
+random_waic[1,2] <- w_mod.3$estimates[3,1]
+random_waic[2,2] <- w_mod.7$estimates[3,1]
+random_waic[3,2] <- w_mod.4$estimates[3,1]
+random_waic[4,2] <- w_mod.2$estimates[3,1]
+random_waic[5,2] <- w_mod.6$estimates[3,1]
+random_waic[6,2] <- w_mod.5$estimates[3,1]
+random_waic[7,2] <- w_mod.1$estimates[3,1]
+
+#Expected log predictive density diff
+random_waic[1,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[1,1]
+random_waic[2,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[2,1]
+random_waic[3,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[3,1]
+random_waic[4,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[4,1]
+random_waic[5,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[5,1]
+random_waic[6,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[6,1]
+random_waic[7,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[7,1]
+
+#SE diff
+random_waic[1,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[1,2]
+random_waic[2,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[2,2]
+random_waic[3,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[3,2]
+random_waic[4,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[4,2]
+random_waic[5,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[5,2]
+random_waic[6,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[6,2]
+random_waic[7,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[7,2]
+```
+
+```{r, echo = FALSE}
+pander(random_waic,
+       justify = "lccc",
+       #split.cell = 80,
+       caption = "Table S1 Comparisons of wAIC values for seven models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance")
+```
+
+#Does our data have heterogenous residual variance?
+
+Residual variance may conflate with estimates of other variance components if it changes over time (heterogenous variance) and is not properly accounted for. We therefore explicitly modelled residual variance to verify if this was the case using WAIC values. We fitted two models, both of which had the same fixed and random effects structure as Model 7 described above. The first model had homogenous residual variance whereas in the second model we modelled residual variance with a linear slope thereby allowing it to vary with age (see code for more details). The model with heterogenous variance was best supported (Table S2), we therefore modelled heterogenous variance in all subsequent models unless stated otherwise
+
+```{r, echo = FALSE, warning = FALSE, include = FALSE}
+brm_5.6 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.6") #Homo ***Currently running longer more nits version
+brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.5") #Hetero 
+
+#Add waics
+w_mod.5.6 <- waic(brm_5.6)
+w_mod.5.5 <- waic(brm_5.5)
+
+#Add loo
+loo_mod.5.6 <- loo(brm_5.6)
+loo_mod.5.5 <- loo(brm_5.5)
+
+#Compare
+loo_compare(w_mod.5.6, w_mod.5.5)
+loo_compare(loo_mod.5.6, loo_mod.5.5)
+
+#Estimates
+w_mod.5.6$estimates
+w_mod.5.5$estimates[3,1]
+
+#Summary of best supported model
+summary(brm_5.5) 
+
+#Summarising the LOO and wAIC of brm models
+#Create a table
+brms_IC <- as.data.frame(matrix(ncol =4, nrow = 2))
+colnames(brms_IC) <- c("Model", "WAIC", "ELPD diff", "SE diff")
+brms_IC$Model <- c("Heterogenous variance", "Homogenous variance")
+
+#Fill in the table
+#Heterogenous
+brms_IC[1,2] <- w_mod.5.5$estimates[3,1]
+brms_IC[1,3] <- loo_compare(w_mod.5.5, w_mod.5.6)[[1]]
+brms_IC[1,4] <- loo_compare(w_mod.5.5, w_mod.5.6)[[3]]
+
+#Homogenous
+brms_IC[2,2] <- w_mod.5.6$estimates[3,1]
+brms_IC[2,3] <- loo_compare(w_mod.5.5, w_mod.5.6)[[2]]
+brms_IC[2,4] <- loo_compare(w_mod.5.5, w_mod.5.6)[[4]]
+```
+
+```{r, echo = FALSE}
+# panderOptions('round',Inf)
+# panderOptions('digits',7)
+
+pander(x = brms_IC, 
+       split.cell = 80,
+       split.table = Inf,
+       justify = "lccc",
+       caption = "Table S2 Comparisons of expected log predictive density values for LOO and WAIC values to test the importance of  heterogenous and homogenous residual variance. Note that difference in values are calculated by substracting values from the model with lowest LOO and WAIC values i.e. the heterogenous variance model")
+```
+
+## The influence of developmental temperature on additive genetic variance and maternal effects across age 
+
+We fitted random intercepts for $G$, $M$, $PE$ and $R$ to estimate the overall estimate across age. We found that additive genetic variance, permanent environmental variance and heritability of growth appears to be higher in the hot developmental temperature treatment however, there were no significant differences among treatment groups (Table S3). For each treatment group, we fitted an intercept in our fixed effects and used the best supported random effect structure (Model 7) with heterogenous residual variance. We found that additive genetic variance decreased upon emergence and remained relatively low and remained constant until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects followed a similar pattern, decreasing sharply upon hatching and dropped to the minimum at approximately six months before it increased (Fig. S1).  Residual variance in cold incubated lizards showed a reasonably shallow increase  whereas it increased more steeply in hot incubated lizard (Fig. S1). The $G$ and $M$ matrices for each treatment group are presented in Table S4-S5.
+
+```{r, echo = FALSE, include = FALSE}
+#Marginalised over age - PIE CHART
+#Read in intercept models
+cold_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_4.5")
+hot_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_4.5")
+
+#Extract VCV
+cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
+hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
+
+#Hot treatment
+hot_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary() #G Variance
+hot_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary() #Dam Variance
+hot_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary() #PE Variance
+
+Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"] +
+  hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
+  hot_brm_4.5_post[,"sd_liz_id__Intercept"] + 
+  hot_brm_4.5_post[,"sigma"]
+
+#Hot Heritability
+hot_h2 <- (hot_brm_4.5_post[,"sd_id__Intercept"] / Hot_Pheno_intercept) 
+posterior_summary(hot_h2)[,-2] %>% round(2)
+
+#Cold treatment
+cold_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary() #G Variance
+cold_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary() #Dam Variance
+cold_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary() #PE Variance
+
+cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"] +
+  cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
+  cold_brm_4.5_post[,"sd_liz_id__Intercept"] + 
+  cold_brm_4.5_post[,"sigma"]
+
+#cold Heritability
+cold_h2 <- (cold_brm_4.5_post[,"sd_id__Intercept"]/ cold_Pheno_intercept)
+posterior_summary(cold_h2)[,-2] %>% round(2)
+
+#Create a table
+hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 10))
+colnames(hot_cold_Vcomps) <- c("Treatment", "Variable", "Estimate", "Lower", "Upper")
+
+hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =5)
+hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal", "V_pe", "Vresidual", "h2"), 2)
+
+#Fill in table
+hot_cold_Vcomps[1,3:5] <- (hot_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[2,3:5] <- (hot_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[3,3:5] <- (hot_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[4,3:5] <- (hot_brm_4.5_post[,"sigma"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[5,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"] / Hot_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+
+hot_cold_Vcomps[6,3:5] <- (cold_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[7,3:5] <- (cold_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[8,3:5] <- (cold_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[9,3:5] <- (cold_brm_4.5_post[,"sigma"] %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[10,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"] / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+
+```
+
+```{r, echo = FALSE}
+pander(hot_cold_Vcomps,
+       split.cell = c(100,30,30,30,30),
+       split.table = Inf,
+       justify = "clccc",
+       caption = "Table S3 Treatment comparisons of additive genetic variance, maternal variance, permanent environmental variance and heritability. These are estimated from a model where random intercepts were fitted for both accounts of lizard identity and dam identity")
+```
+
+```{r, echo = FALSE}
+#Figure of variance components G M E over age
+cold_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.5") 
+hot_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5")
+
+#Define the days
+z_days <- ztran_DsH(seq(0, 500, 30))
+
+#Lapply to get numbers across days
+brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "liz_id")) %>% bind_rows()
+brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "dam_id")) %>% bind_rows()
+brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "sigma")) %>% bind_rows()
+
+brms_hot <- bind_rows(brms_hot_Vg,
+                      brms_hot_Vm,
+                      brms_hot_Ve)
+
+brms_hot$treatment <- "hot"
+
+brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "liz_id")) %>% bind_rows()
+brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "dam_id")) %>% bind_rows()
+brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "sigma")) %>% bind_rows()
+
+brms_cold <- bind_rows(brms_cold_Vg,
+                       brms_cold_Vm,
+                       brms_cold_Ve)
+
+brms_cold$treatment <- "cold"
+
+brms_compare <- bind_rows(brms_hot, brms_cold)
+
+#Figure of variance compones G M E over age
+group_var_labs_3 <- c("G  ", "M  ", "Residual")
+
+names(group_var_labs_3) <- unique(brms_compare$group_id)
+
+#Change order
+brms_compare$group_id<- factor(brms_compare$group_id , levels = c("liz_id", "dam_id", "sigma"))
+brms_compare$treatment<- factor(brms_compare$treatment , levels = c("cold", "hot"), labels = c("Cold", "Hot"))
+```
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+ggplot(data = brms_compare, aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity", alpha = 0.1) +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F, size = 1) + 
+  facet_wrap(~group_id, scales = "free_y", labeller = labeller(group_id = group_var_labs_3)) + 
+  scale_x_continuous(breaks = seq(0, 500, 60)) + 
+  #scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
+  scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
+  labs(x = "Age",
+       y = "Variance of Mass",
+       #title = "Relative contribution of variance over age",
+       colour =  "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 18),
+        strip.background = element_blank())
+```
+
+```{r, echo = FALSE, include= FALSE}
+#Compiling G matrix for hot incubated lizards
+
+#Calculate VAR from SD
+hot_G_sd_post <- posterior_samples(hot_brm_5.5, "^sd_liz_id")
+hot_G_var_post <- posterior_samples(hot_brm_5.5, "^sd_liz_id")^2
+hot_G_var_summary <- posterior_summary(hot_G_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+hot_G_cor_post <- posterior_samples(hot_brm_5.5, "^cor_liz_id")
+hot_G_cor_summary <- posterior_summary(hot_G_cor_post)[,-2] %>% signif(digits = 3)
+
+hot_G_cov_post <- cbind(hot_G_cor_post[1] * (hot_G_sd_post[1] * hot_G_sd_post[2]), 
+                  hot_G_cor_post[2] * (hot_G_sd_post[1] * hot_G_sd_post[3]),
+                  hot_G_cor_post[3] * (hot_G_sd_post[2] * hot_G_sd_post[3]))
+names(hot_G_cov_post) <- str_replace(names(hot_G_cor_post), "cor", "cov")
+hot_G_cov_summary <- posterior_summary(hot_G_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_4_G <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_4_G) <- rownames(Table_4_G) <- c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_4_G[1, 1] <- paste0(hot_G_var_summary[1,1], " (", hot_G_var_summary[1,2], " - ", hot_G_var_summary[1,3], ")")
+Table_4_G[2, 2] <- paste0(hot_G_var_summary[2,1], " (", hot_G_var_summary[2,2], " - ", hot_G_var_summary[2,3], ")")
+Table_4_G[3, 3] <- paste0(hot_G_var_summary[3,1], " (", hot_G_var_summary[3,2], " - ", hot_G_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_4_G[1, 2] <- paste0(hot_G_cov_summary[1,1], " (", hot_G_cov_summary[1,2], " - ", hot_G_cov_summary[1,3], ")")
+Table_4_G[1, 3] <- paste0(hot_G_cov_summary[2,1], " (", hot_G_cov_summary[2,2], " - ", hot_G_cov_summary[2,3], ")")
+Table_4_G[2, 3] <- paste0(hot_G_cov_summary[3,1], " (", hot_G_cov_summary[3,2], " - ", hot_G_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_4_G[2, 1] <- paste0(hot_G_cor_summary[1,1], " (", hot_G_cor_summary[1,2], " - ", hot_G_cor_summary[1,3], ")")
+Table_4_G[3, 1] <- paste0(hot_G_cor_summary[2,1], " (", hot_G_cor_summary[2,2], " - ", hot_G_cor_summary[2,3], ")")
+Table_4_G[3, 2] <- paste0(hot_G_cor_summary[3,1], " (", hot_G_cor_summary[3,2], " - ", hot_G_cor_summary[3,3], ")")
+
+#write.csv(Table_4_G, "output/tabs/Table_4_G_brms_hot.csv")
+```
+
+```{r, echo = FALSE, include= FALSE}
+#Compiling M matrix for hot incubated lizards
+
+#Calculate VAR from SD
+hot_M_sd_post <- posterior_samples(hot_brm_5.5, "^sd_dam_id")
+hot_M_var_post <- posterior_samples(hot_brm_5.5, "^sd_dam_id")^2
+hot_M_var_summary <- posterior_summary(hot_M_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+hot_M_cor_post <- posterior_samples(hot_brm_5.5, "^cor_dam_id")
+hot_M_cor_summary <- posterior_summary(hot_M_cor_post)[,-2] %>% signif(digits = 3)
+
+hot_M_cov_post <- cbind(hot_M_cor_post[1] * (hot_M_sd_post[1] * hot_M_sd_post[2]), 
+                  hot_M_cor_post[2] * (hot_M_sd_post[1] * hot_M_sd_post[3]),
+                  hot_M_cor_post[3] * (hot_M_sd_post[2] * hot_M_sd_post[3]))
+names(hot_M_cov_post) <- str_replace(names(hot_M_cor_post), "cor", "cov")
+hot_M_cov_summary <- posterior_summary(hot_M_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_4_M <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_4_M) <- rownames(Table_4_M) <- c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_4_M[1, 1] <- paste0(hot_M_var_summary[1,1], " (", hot_M_var_summary[1,2], " - ", hot_M_var_summary[1,3], ")")
+Table_4_M[2, 2] <- paste0(hot_M_var_summary[2,1], " (", hot_M_var_summary[2,2], " - ", hot_M_var_summary[2,3], ")")
+Table_4_M[3, 3] <- paste0(hot_M_var_summary[3,1], " (", hot_M_var_summary[3,2], " - ", hot_M_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_4_M[1, 2] <- paste0(hot_M_cov_summary[1,1], " (", hot_M_cov_summary[1,2], " - ", hot_M_cov_summary[1,3], ")")
+Table_4_M[1, 3] <- paste0(hot_M_cov_summary[2,1], " (", hot_M_cov_summary[2,2], " - ", hot_M_cov_summary[2,3], ")")
+Table_4_M[2, 3] <- paste0(hot_M_cov_summary[3,1], " (", hot_M_cov_summary[3,2], " - ", hot_M_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_4_M[2, 1] <- paste0(hot_M_cor_summary[1,1], " (", hot_M_cor_summary[1,2], " - ", hot_M_cor_summary[1,3], ")")
+Table_4_M[3, 1] <- paste0(hot_M_cor_summary[2,1], " (", hot_M_cor_summary[2,2], " - ", hot_M_cor_summary[2,3], ")")
+Table_4_M[3, 2] <- paste0(hot_M_cor_summary[3,1], " (", hot_M_cor_summary[3,2], " - ", hot_M_cor_summary[3,3], ")")
+
+#write.csv(Table_4_M, "output/tabs/Table_4_M_brms_hot.csv")
+
+#PE
+posterior_samples(hot_brm_5.5, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
+
+#Residuals
+posterior_samples(hot_brm_5.5, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
+posterior_summary(hot_brm_5.5, "b_sigma_z") %>% signif(digits = 3)
+
+```
+
+```{r, echo = FALSE, include= FALSE}
+#Compiling G matrix for cold incubated lizards
+
+#Calculate VAR from SD
+cold_G_sd_post <- posterior_samples(cold_brm_5.5, "^sd_liz_id")
+cold_G_var_post <- posterior_samples(cold_brm_5.5, "^sd_liz_id")^2
+cold_G_var_summary <- posterior_summary(cold_G_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+cold_G_cor_post <- posterior_samples(cold_brm_5.5, "^cor_liz_id")
+cold_G_cor_summary <- posterior_summary(cold_G_cor_post)[,-2] %>% signif(digits = 3)
+
+cold_G_cov_post <- cbind(cold_G_cor_post[1] * (cold_G_sd_post[1] * cold_G_sd_post[2]), 
+                  cold_G_cor_post[2] * (cold_G_sd_post[1] * cold_G_sd_post[3]),
+                  cold_G_cor_post[3] * (cold_G_sd_post[2] * cold_G_sd_post[3]))
+names(cold_G_cov_post) <- str_replace(names(cold_G_cor_post), "cor", "cov")
+cold_G_cov_summary <- posterior_summary(cold_G_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_5_G <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_5_G) <- rownames(Table_5_G) <- c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_5_G[1, 1] <- paste0(cold_G_var_summary[1,1], " (", cold_G_var_summary[1,2], " - ", cold_G_var_summary[1,3], ")")
+Table_5_G[2, 2] <- paste0(cold_G_var_summary[2,1], " (", cold_G_var_summary[2,2], " - ", cold_G_var_summary[2,3], ")")
+Table_5_G[3, 3] <- paste0(cold_G_var_summary[3,1], " (", cold_G_var_summary[3,2], " - ", cold_G_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_5_G[1, 2] <- paste0(cold_G_cov_summary[1,1], " (", cold_G_cov_summary[1,2], " - ", cold_G_cov_summary[1,3], ")")
+Table_5_G[1, 3] <- paste0(cold_G_cov_summary[2,1], " (", cold_G_cov_summary[2,2], " - ", cold_G_cov_summary[2,3], ")")
+Table_5_G[2, 3] <- paste0(cold_G_cov_summary[3,1], " (", cold_G_cov_summary[3,2], " - ", cold_G_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_5_G[2, 1] <- paste0(cold_G_cor_summary[1,1], " (", cold_G_cor_summary[1,2], " - ", cold_G_cor_summary[1,3], ")")
+Table_5_G[3, 1] <- paste0(cold_G_cor_summary[2,1], " (", cold_G_cor_summary[2,2], " - ", cold_G_cor_summary[2,3], ")")
+Table_5_G[3, 2] <- paste0(cold_G_cor_summary[3,1], " (", cold_G_cor_summary[3,2], " - ", cold_G_cor_summary[3,3], ")")
+
+#write.csv(Table_5_G, "output/tabs/Table_5_G_G_brms_cold.csv")
+```
+
+```{r, echo = FALSE, include= FALSE}
+#Compiling M matrix for cold incubated lizards
+
+#Calculate VAR from SD
+cold_M_sd_post <- posterior_samples(cold_brm_5.5, "^sd_dam_id")
+cold_M_var_post <- posterior_samples(cold_brm_5.5, "^sd_dam_id")^2
+cold_M_var_summary <- posterior_summary(cold_M_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+cold_M_cor_post <- posterior_samples(cold_brm_5.5, "^cor_dam_id")
+cold_M_cor_summary <- posterior_summary(cold_M_cor_post)[,-2] %>% signif(digits = 3)
+
+cold_M_cov_post <- cbind(cold_M_cor_post[1] * (cold_M_sd_post[1] * cold_M_sd_post[2]), 
+                  cold_M_cor_post[2] * (cold_M_sd_post[1] * cold_M_sd_post[3]),
+                  cold_M_cor_post[3] * (cold_M_sd_post[2] * cold_M_sd_post[3]))
+names(cold_M_cov_post) <- str_replace(names(cold_M_cor_post), "cor", "cov")
+cold_M_cov_summary <- posterior_summary(cold_M_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_5_M <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_5_M) <- rownames(Table_5_M) <- c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_5_M[1, 1] <- paste0(cold_M_var_summary[1,1], " (", cold_M_var_summary[1,2], " - ", cold_M_var_summary[1,3], ")")
+Table_5_M[2, 2] <- paste0(cold_M_var_summary[2,1], " (", cold_M_var_summary[2,2], " - ", cold_M_var_summary[2,3], ")")
+Table_5_M[3, 3] <- paste0(cold_M_var_summary[3,1], " (", cold_M_var_summary[3,2], " - ", cold_M_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_5_M[1, 2] <- paste0(cold_M_cov_summary[1,1], " (", cold_M_cov_summary[1,2], " - ", cold_M_cov_summary[1,3], ")")
+Table_5_M[1, 3] <- paste0(cold_M_cov_summary[2,1], " (", cold_M_cov_summary[2,2], " - ", cold_M_cov_summary[2,3], ")")
+Table_5_M[2, 3] <- paste0(cold_M_cov_summary[3,1], " (", cold_M_cov_summary[3,2], " - ", cold_M_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_5_M[2, 1] <- paste0(cold_M_cor_summary[1,1], " (", cold_M_cor_summary[1,2], " - ", cold_M_cor_summary[1,3], ")")
+Table_5_M[3, 1] <- paste0(cold_M_cor_summary[2,1], " (", cold_M_cor_summary[2,2], " - ", cold_M_cor_summary[2,3], ")")
+Table_5_M[3, 2] <- paste0(cold_M_cor_summary[3,1], " (", cold_M_cor_summary[3,2], " - ", cold_M_cor_summary[3,3], ")")
+
+#write.csv(Table_5_M, "output/tabs/Table_5_M_brms_cold.csv")
+
+#PE
+posterior_samples(cold_brm_5.5, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
+
+#Residuals
+posterior_samples(cold_brm_5.5, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
+posterior_summary(cold_brm_5.5, "b_sigma_z") %>% signif(digits = 3)
+```
+
+## Accounting for scale-effects using coefficients of variation
+
+As the mean body mass increases over time, the variance may also increase concurrently due to scale effects and potentially bias estimates of quantitative genetics parameters (Wilson, Kruuk, et al., 2005). We therefore calculated coefficients of variation (CV) across age for each variance component using the following equation: 
+$$CV_{x} = \displaystyle \frac{ 100 . V_{x}^{0.5} }{\mu_{age}}$$
+
+where $CV_x$ is the CV for a given variance component e.g. $CV_M$ is the CV of maternal effects. The CV of maternal effects ($CV_M$) and $CV_G$ showed the same pattern as the raw variance estimates (Fig. S1-2). There were no treatment differences in $CV_G$, $CV_M$. $CV_R$ followed a quadratic relationship. Treatment differences in $CV_R$ were a lot less subtle compared to raw variance estimates and differences occured at particular ages, typically early and late in development (Fig. S2). 
+
+```{r, echo = FALSE, include= FALSE}
+#CV calculations of G M Sigma
+hot_brm_5.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.4")
+cold_brm_5.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.4")
+
+hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
+hot_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
+hot_CV_PE <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "id")) %>% bind_rows()
+hot_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
+
+hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
+hot_CV$treatment <- "Hot"
+
+cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
+cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
+cold_CV_PE <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "id")) %>% bind_rows()
+cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
+
+cold_CV <- bind_rows(cold_CV_G, cold_CV_M, cold_CV_E)
+cold_CV$treatment <- "Cold"
+
+#Putting the hot and cold data together
+brms_CV_compare <- bind_rows(hot_CV, cold_CV)
+```
+
+```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
+#Plotting
+ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity", alpha = 0.1) +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F, size = 1) + 
+  facet_wrap(~group_id, scales = "free_y", labeller = labeller(group_id = group_var_labs_3)) + 
+  scale_x_continuous(breaks = seq(0, 500, 60)) + 
+  #scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
+  scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
+  labs(x = "Age",
+       y = "CV of Mass",
+       #title = "Relative contribution of variance over age",
+       colour =  "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 18),
+        strip.background = element_blank())
+```
+
+## Do growth trajectories differ among developmental temperatures?
+
+We fitted four models with different combinations of treatment interactions with the linear and quadratic components of the growth curve . Coefficient estimates for all models are provided in Table. S5-9. The G and M matrix for the best supported model is presented in Table S6.
+
+```{r, echo = FALSE, include = FALSE}
+#Compiling fixed effects coefficients for overall model testing for differences in growth curves
+brm_5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.het")
+brm_5.het_post <- posterior_samples(brm_5.het)
+colnames(brm_5.het_post)[1:21]
+
+#Combining the coefficients from the final model
+brm_5.fixed <- brm_5.het_post[,c(1,3,4,5,6,7)] %>% posterior_summary() %>% round(3) 
+brm_5.fixed <- brm_5.fixed[,c(1,3,4)]
+```
+
+```{r, echo = FALSE}
+Table_5 <- brm_5.fixed %>% as.data.frame()
+rownames(Table_5) <- c("Intercept", "Treatment", "Age",  "Age^2", "Treatment x Age","Treatment x Age^2")
+
+Table_5$Parameter <- rownames(Table_5)
+rownames(Table_5) <- NULL
+Table_5 <- select(Table_5, Parameter, Estimate:Q97.5)
+
+pander(Table_5,
+       split.cell = c(100,30,30,30),
+       #split.table = Inf,
+       justify = "lccc",
+       caption = "Table S5 Coefficient estimates from full model testing the effects of developmental treatment on mass and how mass changes with age. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+```
+
+```{r, echo = FALSE, include = FALSE}
+#Compiling G matrix for best supported model (5_het)
+
+colnames(brm_5.het_post)[1:21]
+
+#Calculate VAR from SD
+G_sd_post <- posterior_samples(brm_5.het, "^sd_liz_id")
+G_var_post <- posterior_samples(brm_5.het, "^sd_liz_id")^2
+G_var_summary <- posterior_summary(G_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+G_cor_post <- posterior_samples(brm_5.het, "^cor_liz_id")
+G_cor_post
+G_cor_summary <- posterior_summary(G_cor_post)[,-2] %>% signif(digits = 3)
+
+G_cov_post <- cbind(G_cor_post[1] * (G_sd_post[1] * G_sd_post[2]), 
+                  G_cor_post[2] * (G_sd_post[1] * G_sd_post[3]),
+                  G_cor_post[3] * (G_sd_post[2] * G_sd_post[3]))
+names(G_cov_post) <- str_replace(names(G_cor_post), "cor", "cov")
+G_cov_summary <- posterior_summary(G_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_6_G <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_6_G) <- rownames(Table_6_G) <-  c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_6_G[1, 1] <- paste0(G_var_summary[1,1], " (", G_var_summary[1,2], " - ", G_var_summary[1,3], ")")
+Table_6_G[2, 2] <- paste0(G_var_summary[2,1], " (", G_var_summary[2,2], " - ", G_var_summary[2,3], ")")
+Table_6_G[3, 3] <- paste0(G_var_summary[3,1], " (", G_var_summary[3,2], " - ", G_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_6_G[1, 2] <- paste0(G_cov_summary[1,1], " (", G_cov_summary[1,2], " - ", G_cov_summary[1,3], ")")
+Table_6_G[1, 3] <- paste0(G_cov_summary[2,1], " (", G_cov_summary[2,2], " - ", G_cov_summary[2,3], ")")
+Table_6_G[2, 3] <- paste0(G_cov_summary[3,1], " (", G_cov_summary[3,2], " - ", G_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_6_G[2, 1] <- paste0(G_cor_summary[1,1], " (", G_cor_summary[1,2], " - ", G_cor_summary[1,3], ")")
+Table_6_G[3, 1] <- paste0(G_cor_summary[2,1], " (", G_cor_summary[2,2], " - ", G_cor_summary[2,3], ")")
+Table_6_G[3, 2] <- paste0(G_cor_summary[3,1], " (", G_cor_summary[3,2], " - ", G_cor_summary[3,3], ")")
+
+#write.csv(Table_6_G, "output/tabs/Table_6_G.csv")
+```
+
+```{r, echo = FALSE, include = FALSE}
+#Compiling M matrix for best supported model (5_het)
+brm_5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.het")
+#Calculate VAR from SD
+M_sd_post <- posterior_samples(brm_5.het, "^sd_dam_id")
+M_var_post <- posterior_samples(brm_5.het, "^sd_dam_id")^2
+M_var_summary <- posterior_summary(M_var_post)[,-2] %>% round(3)
+
+#Calculate COV from COR
+M_cor_post <- posterior_samples(brm_5.het, "^cor_dam_id")
+M_cor_summary <- posterior_summary(M_cor_post)[,-2] %>% signif(digits = 3)
+
+M_cov_post <- cbind(M_cor_post[1] * (M_sd_post[1] * M_sd_post[2]), 
+                  M_cor_post[2] * (M_sd_post[1] * M_sd_post[3]),
+                  M_cor_post[3] * (M_sd_post[2] * M_sd_post[3]))
+names(M_cov_post) <- str_replace(names(M_cor_post), "cor", "cov")
+M_cov_summary <- posterior_summary(M_cov_post)[,-2] %>% signif(digits = 3)
+
+#Tabulating
+Table_6_M <- data.frame(matrix(nrow = 3, ncol = 3))
+#Names
+colnames(Table_6_M) <- rownames(Table_6_M) <- c("Intercept", "Linear Slope", "Quadratic Slope")
+
+#Fill in matrix - diagonals 
+Table_6_M[1, 1] <- paste0(M_var_summary[1,1], " (", M_var_summary[1,2], " - ", M_var_summary[1,3], ")")
+Table_6_M[2, 2] <- paste0(M_var_summary[2,1], " (", M_var_summary[2,2], " - ", M_var_summary[2,3], ")")
+Table_6_M[3, 3] <- paste0(M_var_summary[3,1], " (", M_var_summary[3,2], " - ", M_var_summary[3,3], ")")
+
+#upper off-diagonals - covariances
+Table_6_M[1, 2] <- paste0(M_cov_summary[1,1], " (", M_cov_summary[1,2], " - ", M_cov_summary[1,3], ")")
+Table_6_M[1, 3] <- paste0(M_cov_summary[2,1], " (", M_cov_summary[2,2], " - ", M_cov_summary[2,3], ")")
+Table_6_M[2, 3] <- paste0(M_cov_summary[3,1], " (", M_cov_summary[3,2], " - ", M_cov_summary[3,3], ")")
+
+#lower off diagonals - correlations 
+Table_6_M[2, 1] <- paste0(M_cor_summary[1,1], " (", M_cor_summary[1,2], " - ", M_cor_summary[1,3], ")")
+Table_6_M[3, 1] <- paste0(M_cor_summary[2,1], " (", M_cor_summary[2,2], " - ", M_cor_summary[2,3], ")")
+Table_6_M[3, 2] <- paste0(M_cor_summary[3,1], " (", M_cor_summary[3,2], " - ", M_cor_summary[3,3], ")")
+
+#write.csv(Table_6_M, "output/tabs/Table_6_M.csv")
+
+#PE
+posterior_samples(brm_5.het, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
+
+#Residuals
+posterior_samples(brm_5.het, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
+posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
+
+```
+
+```{r, echo = FALSE, include = FALSE}
+#Model coefficients of the other models
+brm_5.1.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.het")
+brm_5.1.5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.5.het")
+brm_5.2.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.2.het")
+
+#Posterior Summary
+posterior_summary(brm_5.1.het)[1:20,] %>% round(3)
+posterior_summary(brm_5.1.5.het)[1:20,] %>% round(3)
+posterior_summary(brm_5.2.het)[1:19,] %>% round(3)
+```
+
+```{r, echo = FALSE}
+Table_7 <- posterior_summary(brm_5.1.het)[1:20,-2] %>% round(3) %>% as.data.frame()
+rownames(Table_7) <- c("Intercept", "Residual", "Treatment", "Age",  "Age^2", "Treatment x Age","Residual x Age",
+                       "V_m intercept", "V_m  slope", "V_m curvature",
+                       "V_pe",
+                       "V_g intercept", "V_g slope", "V_g  curvature",
+                       "Cor_m intercept - slope", "Cor_m intercept - curvature", "Cor_m slope - curvature",
+                       "Cov_g intercept - slope", "Cov_g intercept - curvature", "Cov_g slope - curvature")
+
+Table_7$Parameter <- rownames(Table_7)
+rownames(Table_7) <- NULL
+Table_7 <- select(Table_7, Parameter, Estimate:Q97.5)
+
+pander(Table_7,
+       split.cell = c(100,30,30,30),
+       #split.table = Inf,
+       justify = "lccc",
+       caption = "Table S7 Coefficient estimates from model with interaction between treatment and age (linear growth rate) only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+```
+
+```{r, echo = FALSE}
+Table_8 <- posterior_summary(brm_5.1.5.het)[1:20,-2] %>% round(3) %>% as.data.frame()
+rownames(Table_8) <- c("Intercept", "Residual", "Age", "Treatment",  "Age^2", "Treatment x Age^2","Residual x Age",
+                       "V_m intercept", "V_m  slope", "V_m curvature",
+                       "V_pe",
+                       "V_g intercept", "V_g slope", "V_g  curvature",
+                       "Cor_m intercept - slope", "Cor_m intercept - curvature", "Cor_m slope - curvature",
+                       "Cov_g intercept - slope", "Cov_g intercept - curvature", "Cov_g slope - curvature")
+
+Table_8$Parameter <- rownames(Table_8)
+rownames(Table_8) <- NULL
+Table_8 <- select(Table_8, Parameter, Estimate:Q97.5)
+
+pander(Table_8,
+       split.cell = c(100,30,30,30),
+       #split.table = Inf,
+       justify = "lccc",
+       caption = "Table S8 Coefficient estimates from model with interaction between treatment and quadratic age paramater only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+```
+
+```{r, echo = FALSE}
+Table_9 <- posterior_summary(brm_5.2.het)[1:19,-2] %>% round(3) %>% as.data.frame()
+rownames(Table_9) <- c("Intercept", "Residual", "Treatment", "Age",  "Age^2","Residual x Age",
+                       "V_m intercept", "V_m  slope", "V_m curvature",
+                       "V_pe",
+                       "V_g intercept", "V_g slope", "V_g  curvature",
+                       "Cor_m intercept - slope", "Cor_m intercept - curvature", "Cor_m slope - curvature",
+                       "Cov_g intercept - slope", "Cov_g intercept - curvature", "Cov_g slope - curvature")
+
+Table_9$Parameter <- rownames(Table_9)
+rownames(Table_9) <- NULL
+Table_9 <- select(Table_9, Parameter, Estimate:Q97.5)
+
+pander(Table_9,
+       split.cell = c(100,30,30,30),
+       #split.table = Inf,
+       justify = "lccc",
+       caption = "Table S9 Coefficient estimates from model with main effects of treatment and age only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+```
