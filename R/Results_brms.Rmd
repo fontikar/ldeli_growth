@@ -91,6 +91,17 @@ hot_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_br
 cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
 hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
 
+#Calculate total phenotypic variance for each treatment
+Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"] +
+  hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
+  hot_brm_4.5_post[,"sd_liz_id__Intercept"] + 
+  hot_brm_4.5_post[,"sigma"]
+
+cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"] +
+  cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
+  cold_brm_4.5_post[,"sd_liz_id__Intercept"] + 
+  cold_brm_4.5_post[,"sigma"]
+
 #Create a table
 hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 10))
 colnames(hot_cold_Vcomps) <- c("Treatment", "Variable", "Estimate", "Lower", "Upper")
