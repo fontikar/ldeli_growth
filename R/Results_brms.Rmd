@@ -56,8 +56,6 @@ data$liz_id %>% unique() %>% length()
 treat_lizards <- data %>% group_by(treatment) %>%
   summarise(Num_individuals = length(unique(liz_id)))
 
-treat_lizards[2,2]
-
 #How old were lizards
 age_dat <-data %>% group_by(liz_id, treatment) %>%
   summarise(max_age = max(days_since_hatch))
@@ -76,15 +74,14 @@ mean(num_meas_dat$Num_measures) %>% round(2)
 sd(num_meas_dat$Num_measures) %>% round(2)
 ```
 
-
 ## Description of dataset
 Over two years,  we collected `r data %>% nrow()` observations of mass data for a total of `r data$liz_id %>% unique() %>% length()` individuals ($n_{hot}$ = `r treat_lizards[2,2]`, $n_{cold}$ = `r treat_lizards[1,2]`). The average age for hot incubated lizards was `r age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% mean() %>% round(2)` (range: `r age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% min() %>% round(2)` -- `r age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% max() %>% round(2)`) and for cold incubated lizards it was `r age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% mean() %>% round(2)` (range: `r age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% min() %>% round(2)` -- `r age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% max() %>% round(2)`). On average, a lizard had `r mean(num_meas_dat$Num_measures) %>% round(2)` measurements (SD = `r sd(num_meas_dat$Num_measures) %>% round(2)`).
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
 
-Overall, additive genetic variance, permanent environmental variance and heritability of growth appears to be higher in the hot developmental temperature treatment (Fig. XX, Table SXX). However, there were no significant differences among treatment groups (Table XX). Treatment groups did not differ in how the relative contributions of $G$ and $M$ changed with age as their 95% credible intervals overlapped (Fig. 3). Additive genetic variance remained relatively low and constant upon emergence until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects decreasing sharply upon hatching and dropped to the minimum at approximately six months before it increased (Fig. S1). There were some differences among developmental treatments in how residual variance changed with age (Fig. S1). Residual variance in cold incubated lizards showed a reasonably shallow increase  whereas it increased more steeply in hot incubated lizard. After acconting for heterogenous residual variance, we found  no differences in $h^2$ or the proportion of variance explained by maternal effects ($M^2$). Heritability was very low for the first year of growth in L.deliata and only began increasing at one year of age (Fig. XA). As predicted $M^2$ decreased since hatching, however it increased slightly from six months of age (Fig. XB). The $G$ and $M$ matrices for each treatment group are presented in Table S6-S7.
+Overall, additive genetic variance, permanent environmental variance and heritability of growth appears to be higher in the hot developmental temperature treatment (Fig. 1). However, there were no significant differences among treatment groups (Table S3). Treatment groups did not differ in how the relative contributions of $G$ and $M$ changed with age as their 95% credible intervals overlapped (Fig. S1). Additive genetic variance remained relatively low and constant upon emergence until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects decreasing sharply upon hatching and dropped to the minimum at approximately six months before it increased (Fig. S1). There were some differences among developmental treatments in how residual variance changed with age (Fig. S1). We investigated whether increases in mass mean over time would result in scale effects that can bias variance estimates. We found that CV of G and M followed the same pattern was the raw variance estimates and conclude that scale effects did not influence our results (Fig. S2).After accounting for heterogenous residual variance, we found no differences in $h^2$ or the proportion of variance explained by maternal effects ($M^2$) (Fig.2). Heritability was very low for the first year of growth in L.deliata and only began increasing at one year of age (Fig. 2). As predicted $M^2$ decreased since hatching, however it increased slightly from six months of age (Fig. 2). The $G$ and $M$ matrices for each treatment group are presented in Table S6-S7.
 
-```{r, echo = FALSE, include = FALSE}
+```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
 #Marginalised over age - PIE CHART
 #Read in intercept models
 cold_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_4.5")
@@ -93,34 +90,6 @@ hot_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_br
 #Extract VCV
 cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
 hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
-
-#Hot treatment
-hot_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary() #G Variance
-hot_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary() #Dam Variance
-hot_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary() #PE Variance
-
-Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"] +
-  hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  hot_brm_4.5_post[,"sd_liz_id__Intercept"] + 
-  hot_brm_4.5_post[,"sigma"]
-
-#Hot Heritability
-hot_h2 <- (hot_brm_4.5_post[,"sd_id__Intercept"] / Hot_Pheno_intercept) 
-posterior_summary(hot_h2)[,-2] %>% round(2)
-
-#Cold treatment
-cold_brm_4.5_post[,"sd_id__Intercept"] %>% posterior_summary() #G Variance
-cold_brm_4.5_post[,"sd_dam_id__Intercept"] %>% posterior_summary() #Dam Variance
-cold_brm_4.5_post[,"sd_liz_id__Intercept"] %>% posterior_summary() #PE Variance
-
-cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"] +
-  cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  cold_brm_4.5_post[,"sd_liz_id__Intercept"] + 
-  cold_brm_4.5_post[,"sigma"]
-
-#cold Heritability
-cold_h2 <- (cold_brm_4.5_post[,"sd_id__Intercept"]/ cold_Pheno_intercept)
-posterior_summary(cold_h2)[,-2] %>% round(2)
 
 #Create a table
 hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 10))
@@ -160,22 +129,8 @@ ggplot(hot_pieplot, aes(y = Estimate, x = "", fill = Variable)) +
   coord_polar("y", start=0) + 
   scale_fill_manual(values = c("#046C9A", "#D69C4E" ,"#ABDDDE", "#000000")) + 
   theme_void() 
-```
 
-```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
-hot_cold_Vcomps %>% filter(Treatment == "Cold"  & ! Variable == "h2") %>%
-ggplot(aes(y = Estimate, x = "", fill = Variable)) + 
-  geom_bar(stat="identity", width=1)  + 
-  coord_polar("y", start=0) + 
-  scale_fill_manual(values = c("#046C9A", "#D69C4E" ,"#ABDDDE", "#000000")) + 
-  theme_void() 
-
-hot_cold_Vcomps %>% filter(Treatment == "Hot"  & ! Variable == "h2") %>%
-ggplot(aes(y = Estimate, x = "", fill = Variable)) + 
-  geom_bar(stat="identity", width=1)  + 
-  coord_polar("y", start=0) + 
-  scale_fill_manual(values = c("#046C9A", "#D69C4E" ,"#ABDDDE", "#000000")) + 
-  theme_void() 
+#These were saved as pdf and labels were added via PowerPoint
 ```
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE, include = FALSE}
@@ -186,23 +141,28 @@ hot_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_br
 #Define the days
 z_days <- ztran_DsH(seq(0, 500, 30))
 
-#Heritability and maternal effects
+#Compiling heritability and maternal effects estimates across days
+#Hot developmental temperature model
 brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, x = x)) %>% bind_rows()
 brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, x = x)) %>% bind_rows()
 
+#Putting it together in one data frame
 brms_hot_h2m2 <- bind_rows(brms_hot_h2, 
                            brms_hot_m2)
-
+#Assigning treatment
 brms_hot_h2m2$treatment <- "hot"
 
+#Cold developmental temperature model
 brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, x = x)) %>% bind_rows()
 brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, x = x)) %>% bind_rows()
 
+#Putting it together in one data frame
 brms_cold_h2m2 <- bind_rows(brms_cold_h2, 
                             brms_cold_m2)
-
+#Assigning treatment
 brms_cold_h2m2$treatment <- "cold"
 
+#Putting hot and cold values together into one dataframe for plotting
 brms_h2m2 <- bind_rows(brms_hot_h2m2, brms_cold_h2m2)
 
 #Plotting figure
@@ -210,7 +170,6 @@ brms_top_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "h2"), aes(x = day,
   geom_point(size = 2) + 
   geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
   geom_line(size = 1) + 
-  #stat_smooth(method = "auto", se = F, size = 1) + 
   scale_x_continuous(breaks = seq(0, 500, 60)) + 
   scale_y_continuous(lim = c(0,0.1)) + 
   scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
@@ -226,15 +185,10 @@ brms_top_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "h2"), aes(x = day,
 
 brms_bottom_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "m2"), aes(x = day, y = Estimate, colour = factor(treatment))) +
   geom_point(size = 2) + 
-  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
   geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
-  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity", alpha = 0.1) +
   geom_line(size = 1) + 
-  #stat_smooth(method = "auto", se = F, size = 1) + 
-  #facet_wrap(~group_id, labeller = labeller(group_id = group_var_labs)) + 
   scale_x_continuous(breaks = seq(0, 500, 60)) + 
   scale_y_continuous(lim = c(0,0.25)) + 
-  #scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
   scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
   labs(y = TeX("M^2"),
        x = "Age",
@@ -258,20 +212,14 @@ brm_5.1.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.
 brm_5.1.5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.5.het")
 brm_5.2.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.2.het")
 
-#Add the WAIC and loo
+#Add the WAIC
 waic_5.het <- waic(brm_5.het)
 waic_5.1.het <- waic(brm_5.1.het)
 waic_5.1.5.het <- waic(brm_5.1.5.het)
 waic_5.2.het <- waic(brm_5.2.het)
 
-loo_5.het <- loo(brm_5.het)
-loo_5.1.het <- loo(brm_5.1.het)
-loo_5.1.5.het <- loo(brm_5.1.5.het)
-loo_5.2.het <- loo(brm_5.2.het)
-
 #Compare
 loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)
-loo_compare(loo_5.het, loo_5.1.het, loo_5.1.5.het, loo_5.2.het)
 
 #Tabulating
 fixed_waic <- data.frame(matrix(nrow = 4, ncol = 4))
@@ -310,6 +258,10 @@ pander(fixed_waic,
 ```
 
 ```{r, echo = FALSE, include = FALSE}
+#Overall linear growth rate
+growth_rate <- brm_5.het_post["b_z_days_since_hatch"] %>% exp() %>% posterior_summary() %>% round(3)
+
+
 #Calculating inital mass
 summary(brm_5.het)
 brm_5.het_post <- posterior_samples(brm_5.het)
@@ -358,60 +310,20 @@ posterior_summary(cold_Age_max)[3] %>% round(2)
 posterior_summary(cold_Age_max)[4] %>% round(2)
 ```
 
-The model containing interactions between treatment and the linear and quadratic components of the growth curve was best supported by WAIC values (Table. X - DIC table). The linear growth rate and curvature of the growth trajectory did not differ significantly between the two developmental temperature treatments (Table X - Mod coeffs). Irrespective of treatment, a lizard mass increased by X.XXg for every 1 SD unit increase in age. Developmental temperature did however impact initial mass (Table X - Mod effs, Fig. S). Lizards from the ‘cold’ treatment were on average `r mean(diff)`g (95% CI: `r diff_CI_lower`g – `r diff_CI_upper`g) heavier compared to lizards from the ‘hot’ treatment (Table. 2). Larger initial masses meant that lizards from the ‘cold’ treatment reached their maximum mass slightly earlier (`r posterior_summary(cold_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(cold_Age_max)[3] %>% round(2)` – `r posterior_summary(cold_Age_max)[4] %>% round(2)`) compared to lizards from ‘hot’ treatment  (`r posterior_summary(hot_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(hot_Age_max)[3] %>% round(2)` – `r posterior_summary(hot_Age_max)[4] %>% round(2)`). The population G and M matrices and other variance components are presented in Table S5. 
+While the model containing an full interaction between treatment and linear and quadratic age was best supported, the improvement was marginal (Table 1). Moreover, the linear growth rate (Age) and curvature of the growth trajectory ($Age^2$) did not differ significantly between the two developmental temperature treatments (Table S5, Table S7-S9). Irrespective of treatment, a lizard mass increased by `r growth_rate[1]`g for every 1 SD unit increase in age. Developmental temperature did however impact initial mass (Table 1, Fig. 3). Lizards from the ‘cold’ treatment were on average `r mean(diff)`g (95% CI: `r diff_CI_lower`g – `r diff_CI_upper`g) heavier compared to lizards from the ‘hot’ treatment (Table. 2). Larger initial masses meant that lizards from the ‘cold’ treatment reached their maximum mass slightly earlier (`r posterior_summary(cold_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(cold_Age_max)[3] %>% round(2)` – `r posterior_summary(cold_Age_max)[4] %>% round(2)`) compared to lizards from ‘hot’ treatment  (`r posterior_summary(hot_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(hot_Age_max)[3] %>% round(2)` – `r posterior_summary(hot_Age_max)[4] %>% round(2)`). The population G and M matrices and other variance components are presented in Table S5. 
 
 
 ```{r, echo = FALSE, cache = TRUE, warning = FALSE, include = FALSE, cache = TRUE}
-#Figure of model predictions showing intercept differences
+#Figure 3 of model predictions showing intercept differences
 predat <- data_DA %>% select(liz_id, dam_id, treatment) %>% distinct()
 z_days <- ztran_DsH(seq(0, 500, 30))
 days <- backztran_DSH(z_days)
-day <- 6
-liz_id = "ld0231"
 
-func_growth_predictions <- function(day, predat){
-  
-  func <- function(liz_id = predat$liz_id[i]){
- # finding dam_id that corresponds to liz_id
-  dam_id <- predat$dam_id[predat$liz_id == liz_id]
-  treat <- predat$treatment[predat$liz_id == liz_id]
-
-  pred <- brm_5.het_post[, "b_Intercept"] + #Intercept
-    brm_5.het_post[, "b_z_days_since_hatch"] * ztran_DsH(day) + #Linear day effect 
-    brm_5.het_post[, "b_z_days_since_hatch_I2"] * ((ztran_DsH(day))^2) + #Curve day effect 
-    brm_5.het_post[, paste0("r_liz_id[",liz_id, ",Intercept]")] + #Lizard intercept
-    brm_5.het_post[, paste0("r_liz_id[",liz_id, ",z_days_since_hatch]")] + #Lizard slope
-    brm_5.het_post[, paste0("r_liz_id[",liz_id, ",z_days_since_hatch_I2]")] + #Lizard curve z_days_since_hatch_I2
-    brm_5.het_post[, paste0("r_dam_id[",dam_id, ",Intercept]")] + #Dam intercept
-    brm_5.het_post[, paste0("r_dam_id[",dam_id, ",z_days_since_hatch]")] + #Dam slope
-    brm_5.het_post[, paste0("r_dam_id[",dam_id, ",z_days_since_hatch_I2]")]  #Dam curve
-  
-  if(treat == 29){
-    pred <- pred + 
-    brm_5.het_post[, "b_treatment29"] * 1 +
-    brm_5.het_post[, "b_treatment29:z_days_since_hatch"] * 1 + 
-    brm_5.het_post[, "b_treatment29:z_days_since_hatch_I2"] * 1
-  }
-  
-  original_scale_pred <- posterior_summary(pred) %>% exp() #Calculate posterior mean and upper and lower
-  
-  df <- data.frame(liz_id = liz_id,
-             dam_id = dam_id,
-             treatment = treat,
-             day = day,
-             mean_mass = original_scale_pred[,1],
-             lower = original_scale_pred[,3],
-             upper = original_scale_pred[,4])
-  return(df)
-  } #Extract posterior mean and upper and lower
-  df <- bind_rows(lapply(predat$liz_id, function(x) func(x))) %>% mutate(day = day)
-  return(df)
-}
-
-df <- bind_rows(lapply(days, function(x) func_growth_predictions(x, predat = predat)))
+df <- bind_rows(lapply(days, function(x) func_growth_predictions(x, predat = predat, posterior = brm_5.het_post)))
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
+#Generationg Figure 3
 hot_ids <- df %>% filter(treatment == "29") %>% pull(liz_id) %>% unique()
 set.seed(6)
 hot_plot_ids <- as.character(sample(hot_ids, 20, replace = T))
@@ -419,22 +331,6 @@ hot_plot_ids <- as.character(sample(hot_ids, 20, replace = T))
 cold_ids <- df %>% filter(treatment == "23") %>% pull(liz_id) %>% unique()
 set.seed(6)
 cold_plot_ids <- as.character(sample(cold_ids, 20, replace = T))
-
-# df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
-#   ggplot(
-#     aes(x = day, y = mean_mass)) + 
-#   geom_point(aes(color = factor(treatment)), alpha = 0.3) + 
-#   stat_smooth(aes(group = factor(liz_id)), 
-#               method = "lm", formula = y ~ x + I(x^2), size = 0.1, se = F, colour = "black", alpha = 0.01) + 
-#   stat_smooth(aes(colour = factor(treatment)), 
-#               method = "lm", formula = y ~ x + I(x^2), size = 2, se = F, alpha = 0.01) + 
-#   scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
-#   labs(x = "Age",
-#        y = "Log transformed Mass",
-#        #title = "Model predictions N = 40",
-#        colour =  "Treatment") +
-#   theme_bw() + 
-#   my_theme
 
 df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
   ggplot(
@@ -451,9 +347,6 @@ df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
        colour =  "Treatment") +
   theme_bw() + 
   my_theme
-
-# rgb(red = 19, green = 146, blue = 119, maxColorValue = 255)
-# rgb(red = 238, green = 158, blue = 7, maxColorValue = 255)
 ```
 
 
