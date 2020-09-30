@@ -538,6 +538,48 @@ ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y =
         strip.background = element_blank())
 ```
 
+```{r}
+#CV of h2 and m2
+hot_CV_h2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = hot_brm_5.4, x = x, group_var = "h2")) %>% bind_rows()
+hot_CV_m2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = hot_brm_5.4, x = x, group_var = "m2")) %>% bind_rows()
+
+hot_CV_ratios <- bind_rows(hot_CV_h2, 
+                           hot_CV_m2)
+hot_CV_ratios$treatment <- "hot"
+
+cold_CV_h2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = cold_brm_5.4, x = x, group_var = "h2")) %>% bind_rows()
+cold_CV_m2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = cold_brm_5.4, x = x, group_var = "m2")) %>% bind_rows()
+
+cold_CV_ratios <- bind_rows(cold_CV_h2, 
+                           cold_CV_m2)
+cold_CV_ratios$treatment <- "cold"
+
+CV_ratios <- bind_rows(hot_CV_ratios, 
+                       cold_CV_ratios)
+
+ggplot(data = CV_ratios, aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  #geom_smooth(aes(ymin = Lower, ymax = Upper), stat = "identity", alpha = 0.1) +
+  #geom_line() + 
+  stat_smooth(method = "auto", se = F, size = 1) + 
+  facet_wrap(~group_id, scales = "free_y") + 
+  scale_x_continuous(breaks = seq(0, 500, 60)) + 
+  #scale_colour_manual(values = c("#5BBCD6", "#F98400")) + 
+  scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
+  labs(x = "Age",
+       y = "CV of h2/m2",
+       #title = "Relative contribution of variance over age",
+       colour =  "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 18),
+        strip.background = element_blank())
+```
+
+
 ## Do growth trajectories differ among developmental temperatures?
 
 To test for treatment differences in growth trajectories, we fitted four models with different combinations of treatment interactions with the linear and quadratic age parameters and compared their WAIC values (Table 1). The full model was best supported was model (Table S5), its G and M matrix is presented in Table S6 below. Model coefficients for the other three models are presented in Table S7-S9) 
