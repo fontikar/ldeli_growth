@@ -1,10 +1,12 @@
 ---
-title: 'ESM brms text for ldeli growth'
-author: Fonti Kar
+title: "ESM brms text for ldeli growth"
+author: "Fonti Kar"
 date: "`r Sys.Date()`"
-output: 
+output:
   word_document:
-    reference_docx: "Style_guide.docx"
+    reference_docx: Style_guide.docx
+  html_document:
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
@@ -796,56 +798,88 @@ pander(Table_9,
        caption = "Table S9 Coefficient estimates from model with main effects of treatment and age only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
 ```
 
-```{r}
+## Egg mortality analysis
+
+```{r, echo = FALSE, include = FALSE, eval = FALSE}
 #Egg mortality analysis
-egg_data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
-
-str(egg_data)
-
-#All the different egg status
-egg_data$egg_status %>% tabyl()
-
-#Filter out Available and culled
-egg_mort_data <- egg_data %>% filter(egg_status == "DEAD" | egg_status == "HATCHED")
-str(egg_mort_data)
-
-#Set date as data
-egg_mort_data %<>% mutate(egg_laid_date = dmy(egg_laid_date),
-                         liz_hatch_date = dmy(liz_hatch_date)) 
-
-egg_mort_data %>% tabyl(egg_incub_temp, egg_status)
-
-#Create binary variable mortaility
-egg_mort_data %<>% mutate(mortality = ifelse(egg_status == "HATCHED",1,0))
+# egg_data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
+# 
+# str(egg_data)
+# 
+# #All the different egg status
+# egg_data$egg_status %>% tabyl()
+# 
+# #Filter out Available and culled
+# egg_mort_data <- egg_data %>% filter(egg_status == "DEAD" | egg_status == "HATCHED")
+# str(egg_mort_data)
+# 
+# #Set date as data
+# egg_mort_data %<>% mutate(egg_laid_date = dmy(egg_laid_date),
+#                          liz_hatch_date = dmy(liz_hatch_date)) 
+# 
+# egg_mort_data %>% tabyl(egg_incub_temp, egg_status)
+# 
+# #Create binary variable mortaility
+# egg_mort_data %<>% mutate(mortality = ifelse(egg_status == "HATCHED",1,0))
 
 #write.csv(egg_mort_data, row.names = F, "data/egg_lizard/egg_mort.csv")
 
-mort_model <- readRDS("output/rds/mort_model")
-plot(mort_model)
+mort_model <- readRDS("/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mort_model")
+#plot(mort_model)
+
+posterior_summary(mort_model)[1:3,]
 ```
 
-```{r}
+```{r, eval = TRUE, echo = FALSE, include = FALSE}
 #If I don't account for individual variation in growth, do I get a treatment effect?
-mod.5.noid <- brm(lnMass ~ treatment*z_days_since_hatch + treatment*z_days_since_hatch_I2 + (1 | dam_id),
-                  family = gaussian(),
-                  data = data_DA, 
-                  chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
-                  control = list(adapt_delta = 0.98))
+# mod.5.noid <- brm(lnMass ~ treatment*z_days_since_hatch + treatment*z_days_since_hatch_I2 + (1 | dam_id),
+#                   family = gaussian(),
+#                   data = data_DA, 
+#                   chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+#                   control = list(adapt_delta = 0.98))
+# 
+# saveRDS(mod.5.noid, "output/rds/mod.5.noid")
 
-saveRDS(mod.5.noid, "output/rds/mod.5.noid")
+mod.5.noid <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.5.noid")
 
-posterior_summary(mod.5.noid)[1:12,]
+Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)
 ```
 
-```{r}
-#Accounting for incubation duration 
-#Create incubation duration
+## How does developmental temperatures affect growth when individual variation is not taken into account
 
-names(data_DA)
+```{r, eval = TRUE, echo = TRUE, include = TRUE}
+pander(Table_noID,
+       split.cell = c(100,30,30,30),
+       #split.table = Inf,
+       justify = "lccc",
+       caption = "Table S10, model coefficient testing")
+```
 
-data_DA %<>% mutate(hatch_date = ymd(hatch_date),
+```{r, eval = FALSE, echo = FALSE, include = FALSE}
+
+#Format date and treatment
+data_DA %<>% mutate(treatment = as.factor(treatment),
+                   liz_id = as.factor(liz_id),
+                   dam_id = as.factor(dam_id), 
+                   treatent = as.factor(treatment),
+                   hatch_date = ymd(hatch_date),
                    egg_laid_date = ymd(egg_laid_date), 
                    incub_dur = as.numeric(hatch_date - egg_laid_date),
                    z_incub_dur = scale(incub_dur)[1])
+
+a<- ggplot(data_DA, aes(x  = incub_dur, group = treatment, fill = treatment)) + 
+  geom_density() 
+
+b<-ggplot(data_DA, aes(x = treatment, y = incub_dur)) + 
+  geom_boxplot() 
+
+c<-  ggplot(data_DA, aes(x = incub_dur, y = lnMass)) + 
+  geom_point(aes(colour = treatment))
+
+a + b + c
+
+#Accounting for incubation duration 
+hot_indur <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5_incbd")
+cold_indur <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.5_incbd")
 ```
 
