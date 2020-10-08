@@ -276,14 +276,15 @@ pander(fixed_waic,
 ```
 
 ```{r, echo = FALSE, include = FALSE}
-#Overall linear growth rate
-growth_rate <- brm_5.het_post["b_z_days_since_hatch"] %>% exp() %>% posterior_summary() %>% round(3)
-
 
 #Calculating inital mass
 summary(brm_5.het)
 brm_5.het_post <- posterior_samples(brm_5.het)
 colnames(brm_5.het_post)[1:21]
+
+#Overall linear growth rate
+growth_rate <- brm_5.het_post["b_z_days_since_hatch"] %>% exp() %>% posterior_summary() %>% round(3)
+
 
 #Cold coefficients
 cold_intercept <- brm_5.het_post[,"b_Intercept"] %>% exp()
@@ -328,7 +329,7 @@ posterior_summary(cold_Age_max)[3] %>% round(2)
 posterior_summary(cold_Age_max)[4] %>% round(2)
 ```
 
-While the model containing an full interaction between treatment and linear and quadratic age was best supported, the improvement was marginal (Table 1). Moreover, the linear growth rate (Age) and curvature of the growth trajectory ($Age^2$) did not differ significantly between the two developmental temperature treatments (Table S5, Table S7-S9). Irrespective of treatment, a lizard mass increased by `r growth_rate[1]`g for every 1 SD unit increase in age. Developmental temperature did however impact initial mass (Table 1, Fig. 3). Lizards from the ‘cold’ treatment were on average `r mean(diff)`g (95% CI: `r diff_CI_lower`g – `r diff_CI_upper`g) heavier compared to lizards from the ‘hot’ treatment (Table. 2). Larger initial masses meant that lizards from the ‘cold’ treatment reached their maximum mass slightly earlier (`r posterior_summary(cold_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(cold_Age_max)[3] %>% round(2)` – `r posterior_summary(cold_Age_max)[4] %>% round(2)`) compared to lizards from ‘hot’ treatment  (`r posterior_summary(hot_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(hot_Age_max)[3] %>% round(2)` – `r posterior_summary(hot_Age_max)[4] %>% round(2)`). The population G and M matrices and other variance components are presented in Table S5. 
+While the model containing an full interaction between treatment and linear and quadratic age was best supported, the improvement was marginal (Table 1). Moreover, the linear growth rate (Age) and curvature of the growth trajectory ($Age^2$) did not differ significantly between the two developmental temperature treatments (Table S5, Table S7-S9). Irrespective of treatment, a lizard mass increased by `r growth_rate[1]`g for every 1 SD unit increase in age. Developmental temperature did however impact initial mass (Table 1, Fig. 3). Lizards from the ???cold??? treatment were on average `r mean(diff)`g (95% CI: `r diff_CI_lower`g ??? `r diff_CI_upper`g) heavier compared to lizards from the ???hot??? treatment (Table. 2). Larger initial masses meant that lizards from the ???cold??? treatment reached their maximum mass slightly earlier (`r posterior_summary(cold_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(cold_Age_max)[3] %>% round(2)` ??? `r posterior_summary(cold_Age_max)[4] %>% round(2)`) compared to lizards from ???hot??? treatment  (`r posterior_summary(hot_Age_max)[1] %>% round(2)` days, 95% CI: `r posterior_summary(hot_Age_max)[3] %>% round(2)` ??? `r posterior_summary(hot_Age_max)[4] %>% round(2)`). The population G and M matrices and other variance components are presented in Table S5. 
 
 
 ```{r, echo = FALSE, cache = TRUE, warning = FALSE, include = FALSE, cache = TRUE}

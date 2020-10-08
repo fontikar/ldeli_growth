@@ -16,7 +16,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp, janitor)
 
 #Read in dataset
 #Complete
@@ -795,3 +795,57 @@ pander(Table_9,
        justify = "lccc",
        caption = "Table S9 Coefficient estimates from model with main effects of treatment and age only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
 ```
+
+```{r}
+#Egg mortality analysis
+egg_data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
+
+str(egg_data)
+
+#All the different egg status
+egg_data$egg_status %>% tabyl()
+
+#Filter out Available and culled
+egg_mort_data <- egg_data %>% filter(egg_status == "DEAD" | egg_status == "HATCHED")
+str(egg_mort_data)
+
+#Set date as data
+egg_mort_data %<>% mutate(egg_laid_date = dmy(egg_laid_date),
+                         liz_hatch_date = dmy(liz_hatch_date)) 
+
+egg_mort_data %>% tabyl(egg_incub_temp, egg_status)
+
+#Create binary variable mortaility
+egg_mort_data %<>% mutate(mortality = ifelse(egg_status == "HATCHED",1,0))
+
+#write.csv(egg_mort_data, row.names = F, "data/egg_lizard/egg_mort.csv")
+
+mort_model <- readRDS("output/rds/mort_model")
+plot(mort_model)
+```
+
+```{r}
+#If I don't account for individual variation in growth, do I get a treatment effect?
+mod.5.noid <- brm(lnMass ~ treatment*z_days_since_hatch + treatment*z_days_since_hatch_I2 + (1 | dam_id),
+                  family = gaussian(),
+                  data = data_DA, 
+                  chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+                  control = list(adapt_delta = 0.98))
+
+saveRDS(mod.5.noid, "output/rds/mod.5.noid")
+
+posterior_summary(mod.5.noid)[1:12,]
+```
+
+```{r}
+#Accounting for incubation duration 
+#Create incubation duration
+
+names(data_DA)
+
+data_DA %<>% mutate(hatch_date = ymd(hatch_date),
+                   egg_laid_date = ymd(egg_laid_date), 
+                   incub_dur = as.numeric(hatch_date - egg_laid_date),
+                   z_incub_dur = scale(incub_dur)[1])
+```
+
