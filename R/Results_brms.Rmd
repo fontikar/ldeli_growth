@@ -75,6 +75,11 @@ num_meas_dat <- data %>% group_by(liz_id, treatment) %>%
   summarise(Num_measures = length(liz_id)) %>% as.data.frame()
 mean(num_meas_dat$Num_measures) %>% round(2)
 sd(num_meas_dat$Num_measures) %>% round(2)
+
+#Merge 
+measures_age <- left_join(num_meas_dat, age_dat) 
+measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% mean()
+measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% sd()
 ```
 
 ## Description of dataset
