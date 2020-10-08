@@ -856,27 +856,87 @@ pander(Table_noID,
 ```
 
 ```{r, eval = FALSE, echo = FALSE, include = FALSE}
-
 #Format date and treatment
-data_DA %<>% mutate(treatment = as.factor(treatment),
-                   liz_id = as.factor(liz_id),
-                   dam_id = as.factor(dam_id), 
-                   treatent = as.factor(treatment),
-                   hatch_date = ymd(hatch_date),
+data_DA %<>% mutate(hatch_date = ymd(hatch_date),
                    egg_laid_date = ymd(egg_laid_date), 
                    incub_dur = as.numeric(hatch_date - egg_laid_date),
                    z_incub_dur = scale(incub_dur)[1])
 
-a<- ggplot(data_DA, aes(x  = incub_dur, group = treatment, fill = treatment)) + 
+a<- ggplot(data_DA, aes(x  = incub_dur, group = factor(treatment), fill = factor(treatment))) + 
   geom_density() 
 
-b<-ggplot(data_DA, aes(x = treatment, y = incub_dur)) + 
+b<-ggplot(data_DA, aes(x = factor(treatment), y = incub_dur)) + 
   geom_boxplot() 
 
 c<-  ggplot(data_DA, aes(x = incub_dur, y = lnMass)) + 
-  geom_point(aes(colour = treatment))
+  geom_point(aes(colour = factor(treatment)))
 
 a + b + c
+
+#There are lizards with incorrect treatment assignments
+data_DA %>% filter(treatment == 23 & incub_dur < 40) %>% select(id, treatment, egg_laid_date, hatch_date, incub_dur, egg_mass) %>% distinct() #these should be hot lizards
+
+data_DA %>% filter(treatment == 29 & incub_dur > 35 | incub_dur < 20) %>% select(id, treatment, egg_laid_date, hatch_date, incub_dur, , egg_mass) %>% distinct() 
+
+#Ok the lizards with  much shorter incubation periods died soon after birth 
+#ld0463, ld0453, ld0453 are all siblings, from the same clutch and for their given treatment, they hatched super early. They were from clutch c093, and were found under the water bowl and may explain why they have such high egg masses (I think this is mostly water). Maybe we should exclude this clutch entirely
+
+data %>% filter(id %in% c("ld0463", "ld0453", "ld0452")) %>% nrow() #Ok we would only be losing 26 rows of data
+data_DA %>% filter(id %in% c("ld0463", "ld0453", "ld0452")) %>% nrow() #Ok we would only be losing 45 rows of data
+
+data_c <- data %>% filter(!id %in% c("ld0463", "ld0453", "ld0452"))
+data_DA_c <- data_DA %>% filter(!id %in% c("ld0463", "ld0453", "ld0452")) 
+
+#ld0551 is definitely an error, its sibling ld0552 also in hot treatment hatched on the same day
+
+data_c %>% filter(id == "ld0551")
+data_c %<>% mutate(treatment = ifelse(id == "ld0551", 29, data_c$treatment))
+data_DA_c %<>% mutate(treatment = ifelse(id == "ld0551", 29, data_DA_c$treatment))
+
+#ld0382 and ld0383 are siblings and their treatments must have been swapped at the start
+
+data_c %>% filter(id == "ld0383")
+data_c %<>% mutate(treatment = ifelse(id == "ld0382", 29, data_c$treatment))
+data_DA_c %<>% mutate(treatment = ifelse(id == "ld0382", 29, data_DA_c$treatment))
+
+data_c %<>% mutate(treatment = ifelse(id == "ld0383", 23, data_c$treatment))
+data_DA_c %<>% mutate(treatment = ifelse(id == "ld0383", 23, data_DA_c$treatment))
+
+# Summary of treatment and number of lizards and obs
+data_c %>% nrow() 
+lizards <- data_c %>% select(id, treatment) %>% distinct() 
+lizards %>% tabyl(treatment)
+
+ggplot(data_DA_c, aes(x  = incub_dur, group = factor(treatment), fill = factor(treatment))) + 
+  geom_density() 
+
+ggplot(data_DA_c, aes(x = factor(treatment), y = incub_dur)) + 
+  geom_boxplot() 
+
+ggplot(data_DA_c, aes(x = incub_dur, y = lnMass)) + 
+  geom_point(aes(colour = factor(treatment)))
+
+#Filter the data hot and cold for DA and cc data
+
+
+#Write the data and track
+#No DA
+write.csv(data_c, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth.csv")
+
+#DA
+write.csv(data_DA, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv")
+
+#Hot No DA
+
+#Hot DA
+
+#Cold No DA
+
+#Cold DA
+
+
+
+
 
 #Accounting for incubation duration 
 hot_indur <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5_incbd")
