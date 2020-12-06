@@ -16,7 +16,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR)
 
 #Read in dataset
 #Complete
@@ -100,19 +100,15 @@ cold_brm_4.5_post <- posterior_samples(cold_brm_4.5)
 hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
 
 #Calculate total phenotypic variance for each treatment
-Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"] +
-  hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  hot_brm_4.5_post[,"sd_liz_id__Intercept"] + 
-  hot_brm_4.5_post[,"sigma"]
+Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"]^2 +
+  hot_brm_4.5_post[,"sd_dam_id__Intercept"]^2 + 
+  hot_brm_4.5_post[,"sd_liz_id__Intercept"]^2 + 
+  hot_brm_4.5_post[,"sigma"]^2
 
-cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"] +
-  cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  cold_brm_4.5_post[,"sd_liz_id__Intercept"] + 
-  cold_brm_4.5_post[,"sigma"]
-
-#Convert to variance
-Hot_Pheno_intercept_V <- (Hot_Pheno_intercept)^2
-cold_Pheno_intercept_V <- (cold_Pheno_intercept)^2
+cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"]^2 +
+  cold_brm_4.5_post[,"sd_dam_id__Intercept"]^2 + 
+  cold_brm_4.5_post[,"sd_liz_id__Intercept"]^2 + 
+  cold_brm_4.5_post[,"sigma"]^2
 
 #Create a table
 hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 10))
@@ -122,17 +118,17 @@ hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =5)
 hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal", "V_pe", "Vresidual", "h2"), 2)
 
 #Fill in table
-hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
 hot_cold_Vcomps[2,3:5] <- ((hot_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
 hot_cold_Vcomps[4,3:5] <- ((hot_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[5,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"]^2 / Hot_Pheno_intercept_V) %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[5,3:5] <- ((hot_brm_4.5_post[,"sd_liz_id__Intercept"]^2 / Hot_Pheno_intercept) %>% posterior_summary())[-2] %>% round(3)
 
-hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
 hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
 hot_cold_Vcomps[9,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[10,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[10,3:5] <- ((cold_brm_4.5_post[,"sd_liz_id__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
 
 #Plot this
 wesanderson::wes_palette("Darjeeling2") %>% str()
@@ -154,6 +150,49 @@ ggplot(hot_pieplot, aes(y = Estimate, x = "", fill = Variable)) +
   theme_void() 
 
 #These were saved as pdf and labels were added via PowerPoint
+
+#Test for differences use p_direction HOT  - COLD
+#Overall variance
+diff_Pheno_intercept <- Hot_Pheno_intercept - cold_Pheno_intercept
+posterior_summary(diff_Pheno_intercept)
+p_direction(diff_Pheno_intercept_V) %>% plot
+
+#Additive genetic variance
+diff_Vg <- (hot_brm_4.5_post[,"sd_liz_id__Intercept"]^2) - (cold_brm_4.5_post[,"sd_liz_id__Intercept"])^2
+posterior_summary(diff_Vg)
+p_direction(diff_Vg)
+p_direction(diff_Vg) %>% plot
+p_significance(diff_Vg)
+
+#Maternal variance
+diff_Vm <- (hot_brm_4.5_post[,"sd_dam_id__Intercept"]^2) - (cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2
+posterior_summary(diff_Vm)
+p_direction(diff_Vm)
+p_direction(diff_Vm) %>% plot
+p_significance(diff_Vm)
+
+#PE variance
+diff_Vpe <- (hot_brm_4.5_post[,"sd_id__Intercept"]^2) - (cold_brm_4.5_post[,"sd_id__Intercept"])^2
+posterior_summary(diff_Vpe)
+p_direction(diff_Vpe)
+p_direction(diff_Vpe) %>% plot
+p_significance(diff_Vpe)
+
+#Residual variance
+diff_Ve <- (hot_brm_4.5_post[,"sigma"]^2) - (cold_brm_4.5_post[,"sigma"])^2
+posterior_summary(diff_Ve)
+p_direction(diff_Ve)
+p_direction(diff_Ve) %>% plot
+p_significance(diff_Ve)
+
+
+#h2
+diff_h2 <- (hot_brm_4.5_post[,"sd_liz_id__Intercept"]^2 / Hot_Pheno_intercept) - (cold_brm_4.5_post[,"sd_liz_id__Intercept"]^2 / cold_Pheno_intercept)
+posterior_summary(diff_h2)
+p_direction(diff_h2) 
+p_direction(diff_h2) %>% plot
+p_significance(diff_h2)
+
 ```
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE, include = FALSE}

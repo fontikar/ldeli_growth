@@ -927,15 +927,16 @@ write.csv(data_c, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/gr
 write.csv(data_DA, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv")
 
 #Hot No DA
+write.csv(data_c %>% filter(treatment== 29), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/HOT_quangen_growth_for_analysis.csv")
 
 #Hot DA
+write.csv(data_DA_c %>% filter(treatment== 29), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/HOT_quangen_growth_DA.csv")
 
 #Cold No DA
+write.csv(data_c %>% filter(treatment== 23), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/COLD_quangen_growth_for_analysis.csv")
 
 #Cold DA
-
-
-
+write.csv(data_DA_c %>% filter(treatment== 23), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/COLD_quangen_growth_DA.csv")
 
 
 #Accounting for incubation duration 
