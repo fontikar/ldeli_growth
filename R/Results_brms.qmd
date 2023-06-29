@@ -20,12 +20,12 @@ pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, M
 
 #Read in dataset
 #Complete
-data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
+data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
 str(data)
 dim(data)
 
 #Augmented
-data_DA <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
+data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
 str(data_DA)
 dim(data_DA)
 
@@ -40,7 +40,7 @@ my_theme <- theme(#legend.position = "none",
   axis.title=element_text(size=16,face="bold"),
   plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
-source("~/Dropbox/1 - PhD/4 - ldeli_growthrate/R/Analysis/brms functions.R")
+source("./R/Analysis/brms functions.R")
 ```
 
 # Results
