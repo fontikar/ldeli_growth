@@ -16,7 +16,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2)
 
 #Read in dataset
 #Complete
@@ -41,6 +41,17 @@ my_theme <- theme(#legend.position = "none",
   plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
 source("./R/Analysis/brms functions.R")
+```
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+# Explore pedigree a bit
+  data_ped <- data %>% group_by(dam_id)  %>% summarise(n_babes = length(unique(liz_id)), n_sires = length(unique(sire_id))) %>% as.data.frame()
+
+  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(liz_id))) %>% as.data.frame()
 ```
 
 # Results

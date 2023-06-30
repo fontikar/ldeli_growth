@@ -1,12 +1,10 @@
 ---
-title: "ESM brms text for ldeli growth"
+title: "Electronic supplementary materials for: Heritability and developmental plasticity of growth in an oviparous lizard Pedigree and genomic relatedness"
 author: "Fonti Kar"
 date: "`r Sys.Date()`"
 output:
-  word_document:
+  word:
     reference_docx: Style_guide.docx
-  html_document:
-    df_print: paged
 ---
 
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
@@ -18,16 +16,16 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp, janitor)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp, janitor, flextable)
 
 #Read in dataset
 #Complete
-data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth.csv", stringsAsFactors = F)
+data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth.csv", stringsAsFactors = F)
 
 #Augmented
-data_DA <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
+data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
 
-source("~/Dropbox/1 - PhD/4 - ldeli_growthrate/R/Analysis/brms functions.R")
+source("./R/Analysis/brms functions.R")
 
 #ggplot theme
 my_theme <- theme(#legend.position = "none",
@@ -41,19 +39,36 @@ my_theme <- theme(#legend.position = "none",
   plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 ```
 
+We submitted a total of 437 tissues samples, five samples experienced problems during extraction and sequencing and were therefore excluded from the final dataset (n = 432). One individual was excluded from the dataset and may be related to contamination as this individual appeared to be unrelated to any other samples in the dataset.
+
+DNA was extracted from tissue samples using a Qiagen DNeasy Blood and Tissue Kits following the manufacturer’s instructions. Diversity Arrays Technology (DArT) combines next generation sequencing platforms and genome complexity reduction methods (Kilian et al., 2012) to select the most appropriate method for L.delicata. Sequences were processed using DArT specific pipelines. The main pipeline filtered out poor quality sequences which resulted in a total of 185,963 SNPs for our final analysis. 
+
+## Pedigree statistics across treatments
+
+```{r}
+# pedigree_stats
+  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(liz_id))) %>% as.data.frame()
+```
+
+```{r}
+#| label: tbl-tb1
+#| tbl-cap: "Pedigree statistics for each treatment. The number of offspring and sires per dam (clutch) are provided for 23 and 29 C treatments. 'w' indicates a male not present within the breeding design resulting from mating or stored sperm from wild interactions."
+flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit()
+```
+
 ## Model fitting and selection of random effects structure
 
 To then test how G, M and h2 change across age, we used model selection to determine the most appropriate random effects structure for our data as we had no a priori knowledge of how the variance components change with age. We fitted seven models with varying complexity in their random effects and compared their WAIC values (Table S1). We fitted random intercepts and random slopes by including either a linear age term or both linear and quadratic age terms to partition variance across age. Two models were equally supported, the first included a random linear and quadratic slope for G and M and PE. (Model 3, Table S1) and the second included a random linear and quadratic slope for G and M and a random intercept for PE (Model 7, Table S1). To avoid overfitting, we selected the more parsimonious model and used this random effect structure for the remaining analysis unless stated otherwise (Model 7).
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
 #Read in models
-mod.1 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.5")
-mod.2 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.2")
-mod.3 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.1")
-mod.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.4")
-mod.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.3")
-mod.6 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_4.6")
-mod.7 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.6")
+mod.1 <- readRDS("./output/rds/brm_4.5")
+mod.2 <- readRDS("./output/rds/brm_4.2")
+mod.3 <- readRDS("./output/rds/brm_4.1")
+mod.4 <- readRDS("./output/rds/brm_4.4")
+mod.5 <- readRDS("./output/rds/brm_4.3")
+mod.6 <- readRDS("./output/rds/brm_4.6")
+mod.7 <- readRDS("./output/rds/brm_5.6")
 
 #Add waics
 w_mod.1 <- waic(mod.1)
@@ -108,19 +123,19 @@ random_waic[7,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_m
 ```
 
 ```{r, echo = FALSE}
-pander(random_waic,
-       justify = "lccc",
-       #split.cell = 80,
-       caption = "Table S1 Comparisons of wAIC values for seven models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance")
+#| label: tbl-random_waic
+#| tbl-cap: Comparisons of wAIC values for seven models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance
+flextable(random_waic)  %>% align(align = "center", part = "all") %>% autofit()
+
 ```
 
-#Does our data have heterogenous residual variance?
+## Does our data have heterogenous residual variance?
 
 Residual variance may conflate with estimates of other variance components if it changes over time (heterogenous variance) and is not properly accounted for. We therefore explicitly modelled residual variance to verify if this was the case using WAIC values. We fitted two models, both of which had the same fixed and random effects structure as Model 7 described above. The first model had homogenous residual variance whereas in the second model we modelled residual variance with a linear slope thereby allowing it to vary with age (see code for more details). The model with heterogenous variance was best supported (Table S2), we therefore modelled heterogenous variance in all subsequent models unless stated otherwise
 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
-brm_5.6 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.6") #Homo 
-brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.5") #Hetero 
+brm_5.6 <- readRDS("./output/rds/brm_5.6") #Homo 
+brm_5.5 <- readRDS("./output/rds/brm_5.5") #Hetero 
 #Add waics
 w_mod.5.6 <- waic(brm_5.6)
 w_mod.5.5 <- waic(brm_5.5)
@@ -154,14 +169,9 @@ brms_IC[2,4] <- loo_compare(w_mod.5.5, w_mod.5.6)[[4]]
 ```
 
 ```{r, echo = FALSE}
-# panderOptions('round',Inf)
-# panderOptions('digits',7)
-
-pander(x = brms_IC, 
-       split.cell = 80,
-       split.table = Inf,
-       justify = "lccc",
-       caption = "Table S2 Comparisons of expected log predictive density values for LOO and WAIC values to test the importance of  heterogenous and homogenous residual variance. Note that difference in values are calculated by substracting values from the model with lowest LOO and WAIC values i.e. the heterogenous variance model")
+#| label: tbl-brms_IC
+#| tbl-cap: Comparisons of expected log predictive density values for LOO and WAIC values to test the importance of  heterogenous and homogenous residual variance. Note that difference in values are calculated by substracting values from the model with lowest LOO and WAIC values i.e. the heterogenous variance model
+flextable(brms_IC)  %>% align(align = "center", part = "all") %>% autofit()
 ```
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
@@ -173,8 +183,8 @@ To test how variance components and heritability change with age in each treatme
 ```{r, echo = FALSE, include = FALSE}
 #Estimates of G, M, PE and h2 marginalised over age
 #Read in intercept models
-cold_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_4.5")
-hot_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_4.5")
+cold_brm_4.5 <- readRDS("./output/rds/cold_brm_4.5")
+hot_brm_4.5 <- readRDS("./output/rds/hot_brm_4.5")
 
 #Extract VCV
 cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
@@ -217,18 +227,17 @@ hot_cold_Vcomps[10,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"]^2 / cold_Phe
 ```
 
 ```{r, echo = FALSE}
-pander(hot_cold_Vcomps,
-       split.cell = c(100,30,30,30,30),
-       split.table = Inf,
-       justify = "clccc",
-       caption = "Table S3 Treatment comparisons of additive genetic variance, maternal variance, permanent environmental variance and heritability. These are estimated from a model where random intercepts were fitted for both accounts of lizard identity and dam identity")
+#| label: tbl-Vcomps
+#| tbl-cap: Treatment comparisons of additive genetic variance, maternal variance, permanent environmental variance and heritability. These are estimated from a model where random intercepts were fitted for both accounts of lizard identity and dam identity
+flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofit()
+
 ```
 
 ```{r, echo = FALSE}
 #Estimates of variance components G M E over age
 #Read in model output
-cold_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.5") 
-hot_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5")
+cold_brm_5.5 <- readRDS("./output/rds/cold_brm_5.5") 
+hot_brm_5.5 <- readRDS("./output/rds/hot_brm_5.5")
 
 #Define the days to calculate estimates
 z_days <- ztran_DsH(seq(0, 500, 30))
@@ -274,6 +283,7 @@ names(group_var_labs_3) <- unique(brms_compare$group_id)
 brms_compare$group_id<- factor(brms_compare$group_id , levels = c("liz_id", "dam_id", "sigma"))
 brms_compare$treatment<- factor(brms_compare$treatment , levels = c("cold", "hot"), labels = c("Cold", "Hot"))
 ```
+
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 #Plot the figure comparing treatments and variance components
 ggplot(data = brms_compare, aes(x = day, y = Estimate, colour = factor(treatment))) +
@@ -487,8 +497,8 @@ where $CV_x$ is the CV for a given variance component e.g. $CV_M$ is the CV of m
 ```{r, echo = FALSE, include= FALSE}
 #CV calculations of G M Sigma
 #Read in model output
-hot_brm_5.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.4")
-cold_brm_5.4 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.4")
+hot_brm_5.4 <- readRDS("./output/rds/hot_brm_5.4")
+cold_brm_5.4 <- readRDS("./output/rds/cold_brm_5.4")
 
 #Obtain CV estimates over age for hot lizards
 hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
@@ -802,7 +812,7 @@ pander(Table_9,
 
 ```{r, echo = FALSE, include = FALSE, eval = FALSE}
 #Egg mortality analysis
-# egg_data <- read.csv("~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
+egg_data <- read.csv("./data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
 # 
 # str(egg_data)
 # 
@@ -824,7 +834,7 @@ pander(Table_9,
 
 #write.csv(egg_mort_data, row.names = F, "data/egg_lizard/egg_mort.csv")
 
-mort_model <- readRDS("/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mort_model")
+mort_model <- readRDS("./output/rds/mort_model")
 #plot(mort_model)
 
 posterior_summary(mort_model)[1:3,]
@@ -840,7 +850,7 @@ posterior_summary(mort_model)[1:3,]
 # 
 # saveRDS(mod.5.noid, "output/rds/mod.5.noid")
 
-mod.5.noid <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/mod.5.noid")
+mod.5.noid <- readRDS("./output/rds/mod.5.noid")
 
 Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)
 ```
@@ -921,26 +931,26 @@ ggplot(data_DA_c, aes(x = incub_dur, y = lnMass)) +
 
 #Write the data and track
 #No DA
-write.csv(data_c, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth.csv")
+write.csv(data_c, row.names = F, "./data/growth/processed/analysis/Ldeli_quangen_growth.csv")
 
 #DA
-write.csv(data_DA, row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv")
+write.csv(data_DA, row.names = F, "./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv")
 
 #Hot No DA
-write.csv(data_c %>% filter(treatment== 29), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/HOT_quangen_growth_for_analysis.csv")
+write.csv(data_c %>% filter(treatment== 29), row.names = F, "./data/growth/processed/analysis/HOT_quangen_growth_for_analysis.csv")
 
 #Hot DA
-write.csv(data_DA_c %>% filter(treatment== 29), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/HOT_quangen_growth_DA.csv")
+write.csv(data_DA_c %>% filter(treatment== 29), row.names = F, "./data/growth/processed/analysis/HOT_quangen_growth_DA.csv")
 
 #Cold No DA
-write.csv(data_c %>% filter(treatment== 23), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/COLD_quangen_growth_for_analysis.csv")
+write.csv(data_c %>% filter(treatment== 23), row.names = F, "./data/growth/processed/analysis/COLD_quangen_growth_for_analysis.csv")
 
 #Cold DA
-write.csv(data_DA_c %>% filter(treatment== 23), row.names = F, "~/Dropbox/1 - PhD/4 - ldeli_growthrate/data/growth/processed/analysis/COLD_quangen_growth_DA.csv")
+write.csv(data_DA_c %>% filter(treatment== 23), row.names = F, "./data/growth/processed/analysis/COLD_quangen_growth_DA.csv")
 
 
 #Accounting for incubation duration 
-hot_indur <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5_incbd")
-cold_indur <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.5_incbd")
+hot_indur <- readRDS("./output/rds/hot_brm_5.5_incbd")
+cold_indur <- readRDS("./output/rds/cold_brm_5.5_incbd")
 ```
 
