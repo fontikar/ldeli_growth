@@ -7,6 +7,8 @@ output:
     reference_docx: Style_guide.docx
 ---
 
+**This document contains all the code, figures and tables for the manuscript "Heritability and developmental plasticity of growth in an oviparous lizard: Pedigree and genomic relatedness". These should reproduce those found in the Electronic Supplementary Saterial (ESM) of the manuscript.**
+
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 rm(list=ls())
@@ -39,10 +41,6 @@ my_theme <- theme(#legend.position = "none",
   plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 ```
 
-We submitted a total of 437 tissues samples, five samples experienced problems during extraction and sequencing and were therefore excluded from the final dataset (n = 432). One individual was excluded from the dataset and may be related to contamination as this individual appeared to be unrelated to any other samples in the dataset.
-
-DNA was extracted from tissue samples using a Qiagen DNeasy Blood and Tissue Kits following the manufacturer’s instructions. Diversity Arrays Technology (DArT) combines next generation sequencing platforms and genome complexity reduction methods (Kilian et al., 2012) to select the most appropriate method for L.delicata. Sequences were processed using DArT specific pipelines. The main pipeline filtered out poor quality sequences which resulted in a total of 185,963 SNPs for our final analysis. 
-
 ## Pedigree statistics across treatments
 
 ```{r}
@@ -57,8 +55,6 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 ```
 
 ## Model fitting and selection of random effects structure
-
-To then test how G, M and h2 change across age, we used model selection to determine the most appropriate random effects structure for our data as we had no a priori knowledge of how the variance components change with age. We fitted seven models with varying complexity in their random effects and compared their WAIC values (Table S1). We fitted random intercepts and random slopes by including either a linear age term or both linear and quadratic age terms to partition variance across age. Two models were equally supported, the first included a random linear and quadratic slope for G and M and PE. (Model 3, Table S1) and the second included a random linear and quadratic slope for G and M and a random intercept for PE (Model 7, Table S1). To avoid overfitting, we selected the more parsimonious model and used this random effect structure for the remaining analysis unless stated otherwise (Model 7).
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
 #Read in models
@@ -131,8 +127,6 @@ flextable(random_waic)  %>% align(align = "center", part = "all") %>% autofit()
 
 ## Does our data have heterogenous residual variance?
 
-Residual variance may conflate with estimates of other variance components if it changes over time (heterogenous variance) and is not properly accounted for. We therefore explicitly modelled residual variance to verify if this was the case using WAIC values. We fitted two models, both of which had the same fixed and random effects structure as Model 7 described above. The first model had homogenous residual variance whereas in the second model we modelled residual variance with a linear slope thereby allowing it to vary with age (see code for more details). The model with heterogenous variance was best supported (Table S2), we therefore modelled heterogenous variance in all subsequent models unless stated otherwise
-
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
 brm_5.6 <- readRDS("./output/rds/brm_5.6") #Homo 
 brm_5.5 <- readRDS("./output/rds/brm_5.5") #Hetero 
@@ -175,10 +169,6 @@ flextable(brms_IC)  %>% align(align = "center", part = "all") %>% autofit()
 ```
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
-
-We fitted random intercepts for $G$, $M$, $PE$ and $R$ to estimate the overall estimate across age. We found that additive genetic variance, permanent environmental variance and heritability of growth appears to be higher in the hot developmental temperature treatment however, there were no significant differences among treatment groups (Table S3). For each treatment group, we fitted an intercept in our fixed effects and used the best supported random effect structure (Model 7) with heterogenous residual variance. 
-
-To test how variance components and heritability change with age in each treatment group, we fitted an intercept in our fixed effects and used the best supported random effect structure (Model 7) with heterogenous residual variance. There were no differences among treatment groups (Fig. S1).The $G$ and $M$ matrices for each treatment group are presented in Table S4-S5.
 
 ```{r, echo = FALSE, include = FALSE}
 #Estimates of G, M, PE and h2 marginalised over age
@@ -855,7 +845,7 @@ mod.5.noid <- readRDS("./output/rds/mod.5.noid")
 Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)
 ```
 
-## How does developmental temperatures affect growth when individual variation is not taken into account
+## How does developmental temperatures affect growth when individual variation is not taken into account?
 
 ```{r, eval = TRUE, echo = TRUE, include = TRUE}
 pander(Table_noID,
