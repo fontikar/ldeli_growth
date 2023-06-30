@@ -2,9 +2,22 @@
 title: "Electronic supplementary materials for: Heritability and developmental plasticity of growth in an oviparous lizard Pedigree and genomic relatedness"
 author: "Fonti Kar"
 date: "`r Sys.Date()`"
-output:
-  word:
-    reference_docx: Style_guide.docx
+docx:
+editor_options: 
+  chunk_output_type: console
+execute:
+  freeze: auto  # re-render only when source changes
+  cache: false
+  echo: false
+  warning: false
+  error: false
+  include: true
+crossref:
+  fig-title: 'Figure'
+  fig-labels: arabic
+  title-delim: "-"
+  fig-prefix: "Figure"
+  tbl-prefix: "Table"
 ---
 
 **This document contains all the code, figures and tables for the manuscript "Heritability and developmental plasticity of growth in an oviparous lizard: Pedigree and genomic relatedness". These should reproduce those found in the Electronic Supplementary Saterial (ESM) of the manuscript.**
@@ -589,7 +602,7 @@ To test for treatment differences in growth trajectories, we fitted four models 
 ```{r, echo = FALSE, include = FALSE}
 #Compiling fixed effects coefficients for overall model testing for differences in growth curves
 #Read in model output
-brm_5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.het")
+brm_5.het <- readRDS("./output/rds/brm_5.het")
 
 #Extract entire posterior
 brm_5.het_post <- posterior_samples(brm_5.het)
@@ -717,9 +730,9 @@ posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
 
 ```{r, echo = FALSE, include = FALSE}
 #Model coefficients of the other models
-brm_5.1.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.het")
-brm_5.1.5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.5.het")
-brm_5.2.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.2.het")
+brm_5.1.het <- readRDS("./output/rds/brm_5.1.het")
+brm_5.1.5.het <- readRDS("./output/rds/brm_5.1.5.het")
+brm_5.2.het <- readRDS("./output/rds/brm_5.2.het")
 
 #Posterior Summary for all coefficients
 posterior_summary(brm_5.1.het)[1:20,] %>% round(3)
