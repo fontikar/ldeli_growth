@@ -44,3 +44,11 @@ brm_3 <- brm(lnMass ~ 1 +
 add_criterion(brm_3, c("waic", "loo"))
 
 saveRDS(brm_3, "output/rds/brm_3")
+
+invG <- inverseA(G_VCV)
+brm_3 <- MCMCglmm(lnMass ~ 1, random = ~us(z_days_since_hatch + z_days_since_hatch_I2):F1_Genotype, ~us((1 + z_days_since_hatch + z_days_since_hatch_I2: id),
+               family = "gaussian",
+               data2 = list(G_VCV = G_VCV),
+               data = data_DA, 
+               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+               control = list(adapt_delta = 0.98))
