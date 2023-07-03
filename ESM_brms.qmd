@@ -95,20 +95,20 @@ loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)
 random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
 colnames(random_waic) <- c("Model", "wAIC", "elpd_diff", "se_diff")
 
-random_waic[1,1] <- c("Model 3 - quadratic slopes for G, M, PE") 
-random_waic[2,1] <- c("Model 7 - intercept for PE, quadratic slopes for G, M")
-random_waic[3,1] <- c("Model 4 - intercept for G, linear slopes for M, PE")
-random_waic[4,1] <- c("Model 2 - linear slopes for G, M, PE") 
-random_waic[5,1] <- c("Model 6 - intercept for PE, linear slopes for G, M")
+random_waic[1,1] <- c("Model 7 - intercept for PE, quadratic slopes for G, M") 
+random_waic[2,1] <- c("Model 3 - quadratic slopes for G, M, PE")
+random_waic[3,1] <- c("Model 6 - intercept for PE, linear slopes for G, M")
+random_waic[4,1] <- c("Model 4 - intercept for G, linear slopes for M, PE") 
+random_waic[5,1] <- c("Model 2 - linear slopes for G, M, PE")
 random_waic[6,1] <- c("Model 5 - intercept for M, linear slopes for G, PE")
 random_waic[7,1] <- c("Model 1 - intercepts for G, M, PE")
 
 #wAIC values
-random_waic[1,2] <- w_mod.3$estimates[3,1]
-random_waic[2,2] <- w_mod.7$estimates[3,1]
-random_waic[3,2] <- w_mod.4$estimates[3,1]
-random_waic[4,2] <- w_mod.2$estimates[3,1]
-random_waic[5,2] <- w_mod.6$estimates[3,1]
+random_waic[1,2] <- w_mod.7$estimates[3,1]
+random_waic[2,2] <- w_mod.3$estimates[3,1]
+random_waic[3,2] <- w_mod.6$estimates[3,1]
+random_waic[4,2] <- w_mod.4$estimates[3,1]
+random_waic[5,2] <- w_mod.2$estimates[3,1]
 random_waic[6,2] <- w_mod.5$estimates[3,1]
 random_waic[7,2] <- w_mod.1$estimates[3,1]
 
