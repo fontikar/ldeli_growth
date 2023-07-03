@@ -15,8 +15,7 @@ dim(data_DA)
 #Format date and treatment
 data_DA %<>% mutate(treatment = as.factor(treatment),
                     liz_id = as.factor(liz_id),
-                    dam_id = as.factor(dam_id), 
-                    treatent = as.factor(treatment))
+                    dam_id = as.factor(dam_id))
 
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
@@ -27,7 +26,7 @@ brm_4.1 <- brm(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id) + 
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | id),
                family = gaussian(),
-               cov_ranef = list(liz_id = G_VCV),
+               data2 = list(liz_id = G_VCV),
                data = data_DA, 
                chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
                control = list(adapt_delta = 0.98))
@@ -43,7 +42,7 @@ brm_3 <- brm(lnMass ~ 1 +
                data2 = list(liz_id = G_VCV),
                data = data_DA, 
                chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
-               control = list(adapt_delta = 0.98))
+               control = list(adapt_delta = 0.99))
 
 add_criterion(brm_3, c("waic", "loo"))
 
