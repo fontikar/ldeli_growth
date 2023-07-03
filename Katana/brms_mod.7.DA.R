@@ -1,3 +1,4 @@
+
 #Load libraries
 library(dplyr)
 library(magrittr)
@@ -17,15 +18,18 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
-#The model
-brm_4.1 <- brm(lnMass ~ 1 +
-                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
-                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id) + 
-                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | id),
+
+# Reviewer 2 Suggestion to Drop M
+
+brm_7 <- brm(lnMass ~ 1 +
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) +  
+                 (1  | id),
                family = gaussian(),
                data2 = list(G_VCV = G_VCV),
                data = data_DA, 
                chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
                control = list(adapt_delta = 0.98))
 
-saveRDS(brm_4.1, "output/rds/brm_4.1")
+add_criterion(brm_7, c("waic", "loo"), moment_match = TRUE)
+
+saveRDS(brm_7, "output/rds/brm_7")
