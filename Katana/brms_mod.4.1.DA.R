@@ -33,3 +33,18 @@ brm_4.1 <- brm(lnMass ~ 1 +
                control = list(adapt_delta = 0.98))
 
 saveRDS(brm_4.1, "output/rds/brm_4.1")
+
+# Reviewer 2 Suggestion to Drop M
+
+brm_3 <- brm(lnMass ~ 1 +
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | liz_id) +  
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | id),
+               family = gaussian(),
+               data2 = list(liz_id = G_VCV),
+               data = data_DA, 
+               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+               control = list(adapt_delta = 0.98))
+
+add_criterion(brm_3, c("waic", "loo"))
+
+saveRDS(brm_3, "output/rds/brm_3")
