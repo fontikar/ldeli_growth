@@ -103,8 +103,8 @@ Overall, additive genetic variance, permanent environmental variance and heritab
 ```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
 #Marginalised over age - PIE CHART
 #Read in intercept models
-cold_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_4.5")
-hot_brm_4.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_4.5")
+cold_brm_4.5 <- readRDS("./output/rds/cold_brm_4.5")
+hot_brm_4.5 <- readRDS("./output/rds/hot_brm_4.5")
 
 #Extract VCV
 cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
@@ -208,8 +208,8 @@ p_significance(diff_h2)
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE, include = FALSE}
 #Estimating h2 and m2 over age
-cold_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/cold_brm_5.5") 
-hot_brm_5.5 <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/hot_brm_5.5")
+cold_brm_5.5 <- readRDS("./output/rds/cold_brm_5.5") 
+hot_brm_5.5 <- readRDS("./output/rds/hot_brm_5.5")
 
 #Define the days
 z_days <- ztran_DsH(seq(0, 500, 30))
@@ -280,10 +280,10 @@ plot_layout(brms_top_2 / brms_bottom_2)
 ```{r, echo = FALSE, include = FALSE}
 #Compare WAIC of fixed effect models
 #Read in fixed effect models
-brm_5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.het")
-brm_5.1.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.het")
-brm_5.1.5.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.1.5.het")
-brm_5.2.het <- readRDS("~/Dropbox/1 - PhD/4 - ldeli_growthrate/output/rds/brm_5.2.het")
+brm_5.het <- readRDS("./output/rds/brm_5.het")
+brm_5.1.het <- readRDS("./output/rds/brm_5.1.het")
+brm_5.1.5.het <- readRDS("./output/rds/brm_5.1.5.het")
+brm_5.2.het <- readRDS("./output/rds/brm_5.2.het")
 
 #Add the WAIC
 waic_5.het <- waic(brm_5.het)
