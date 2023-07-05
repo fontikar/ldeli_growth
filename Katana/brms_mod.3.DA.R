@@ -17,15 +17,23 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
+# Set some prirors
+priors <- c(prior(normal(0, 10), "Intercept"),
+            prior(student_t(3, 0, 10), class = "sd"),
+            prior(student_t(3, 0, 10), class = "sigma"))
+
 #The model
-brm_4.1 <- brm(lnMass ~ 1 +
+brm_3 <- brm(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id) + 
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | id),
                family = gaussian(),
+               prior = priors,
                data2 = list(G_VCV = G_VCV),
                data = data_DA, 
-               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+               chains = 4, cores = 4, iter = 4000, warmup = 2000, thin = 1,
                control = list(adapt_delta = 0.98))
 
-saveRDS(brm_4.1, "output/rds/brm_4.1")
+add_criterion(brm_3, c("loo", "waic"))
+
+saveRDS(brm_3, "output/rds/brm_3")

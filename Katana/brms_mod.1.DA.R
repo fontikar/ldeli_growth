@@ -1,6 +1,3 @@
-#Set working directory
-setwd("/srv/scratch/z3516573/gitrepo/ldeli_growth")
-
 #Load libraries
 library(dplyr)
 library(magrittr)
@@ -21,15 +18,22 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
+priors <- c(prior(normal(0, 10), "Intercept"),
+            prior(student_t(3, 0, 10), class = "sd"),
+            prior(student_t(3, 0, 10), class = "sigma"))
+
 #The model
-brm_4.5 <- brm(lnMass ~ 1 +
-                 (1 | liz_id) + 
+brm_1 <- brm(lnMass ~ 1 +
+                 (1 | gr(F1_Genotype, cov = G_VCV)) + 
                  (1 | dam_id) + 
                  (1 | id),
                family = gaussian(),
-               cov_ranef = list(liz_id = G_VCV),
+               data2 = list(G_VCV = G_VCV),
+               prior = priors,
                data = data_DA, 
-               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
+               chains = 4, cores = 4, iter = 4000, warmup = 2000, thin = 1,
                control = list(adapt_delta = 0.98))
 
-saveRDS(brm_4.5, "output/rds/brm_4.5")
+add_criterion(brm_1, c("loo", "waic"))
+
+saveRDS(brm_1, "output/rds/brm_1")
