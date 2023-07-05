@@ -92,8 +92,20 @@ mod.3_2 <- readRDS("./output/rds/brm_3")
   w_mod.7_2 <- waic(mod.7_2)
   w_mod.3_2 <- waic(mod.3_2)
 
+# Add loos for comparison
+    loo_mod.1 <- add_criterion(mod.1, "loo")
+    loo_mod.2 <- add_criterion(mod.2, "loo")
+    loo_mod.3 <- add_criterion(mod.3, "loo")
+    loo_mod.4 <- add_criterion(mod.4, "loo")
+    loo_mod.5 <- add_criterion(mod.5, "loo")
+    loo_mod.6 <- add_criterion(mod.6, "loo")
+    loo_mod.7 <- add_criterion(mod.7, "loo")
+  loo_mod.7_2 <- add_criterion(mod.7_2, "loo")
+  loo_mod.3_2 <- add_criterion(mod.3_2, "loo")
 #Compare
-loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.7_2, w_mod.3_2)
+loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.3_2, w_mod.7_2)
+
+loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.3_2, loo_mod.7_2)
 
 #Tabulating
 random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
