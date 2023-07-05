@@ -71,15 +71,16 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
 #Read in models
-  mod.1 <- readRDS("./output/rds/brm_4.5")
-  mod.2 <- readRDS("./output/rds/brm_4.2")
-  mod.3 <- readRDS("./output/rds/brm_4.1")
-  mod.4 <- readRDS("./output/rds/brm_4.4")
-  mod.5 <- readRDS("./output/rds/brm_4.3")
-  mod.6 <- readRDS("./output/rds/brm_4.6")
-  mod.7 <- readRDS("./output/rds/brm_5.6")
-mod.7_2 <- readRDS("./output/rds/brm_7")
-mod.3_2 <- readRDS("./output/rds/brm_3")
+  mod.1 <- readRDS("./output/rds/brm_1")
+  mod.2 <- readRDS("./output/rds/brm_2")
+  mod.3 <- readRDS("./output/rds/brm_3")
+  mod.4 <- readRDS("./output/rds/brm_4")
+  mod.5 <- readRDS("./output/rds/brm_5")
+  mod.6 <- readRDS("./output/rds/brm_6")
+  mod.7 <- readRDS("./output/rds/brm_7")
+
+mod.7_2 <- readRDS("./output/rds/brm_8") # Models already fit and renames to 8 and 9
+mod.3_2 <- readRDS("./output/rds/brm_9")
 
 #Add waics
     w_mod.1 <- waic(mod.1)
