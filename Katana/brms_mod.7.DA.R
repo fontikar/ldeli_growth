@@ -21,14 +21,16 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
-brm_5.6 <- brm(lnMass ~ 1 +
-                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | liz_id) + 
+brm_7 <- brm(lnMass ~ 1 +
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id) + 
                  (1 | id),
                family = gaussian(),
-               cov_ranef = list(liz_id = G_VCV),
+               data2 = list(G_VCV = G_VCV),
                data = data_DA, 
-               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
-               control = list(adapt_delta = 0.98))
+               chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
+               control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-saveRDS(brm_5.6, "output/rds/brm_5.6")
+add_criterion(brm_7, c("loo", "waic"), moment_match=TRUE)
+
+saveRDS(brm_7, "output/rds/brm_7")
