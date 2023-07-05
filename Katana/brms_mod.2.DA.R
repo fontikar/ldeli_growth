@@ -32,9 +32,9 @@ brm_2 <- brm(lnMass ~ 1 +
                prior = priors,
                data2 = list(G_VCV = G_VCV),
                data = data_DA, 
-               chains = 4, cores = 4, iter = 4000, warmup = 2000, thin = 1,
-               control = list(adapt_delta = 0.98))
+               chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
+               control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-add_criterion(brm_2, c("loo", "waic"))
+add_criterion(brm_2, c("loo", "waic"), moment_match=TRUE)
 
 saveRDS(brm_2, "output/rds/brm_2")
