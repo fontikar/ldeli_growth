@@ -71,13 +71,13 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
 #Read in models
-mod.1 <- readRDS("./output/rds/brm_4.5")
-mod.2 <- readRDS("./output/rds/brm_4.2")
-mod.3 <- readRDS("./output/rds/brm_4.1")
-mod.4 <- readRDS("./output/rds/brm_4.4")
-mod.5 <- readRDS("./output/rds/brm_4.3")
-mod.6 <- readRDS("./output/rds/brm_4.6")
-mod.7 <- readRDS("./output/rds/brm_5.6")
+  mod.1 <- readRDS("./output/rds/brm_4.5")
+  mod.2 <- readRDS("./output/rds/brm_4.2")
+  mod.3 <- readRDS("./output/rds/brm_4.1")
+  mod.4 <- readRDS("./output/rds/brm_4.4")
+  mod.5 <- readRDS("./output/rds/brm_4.3")
+  mod.6 <- readRDS("./output/rds/brm_4.6")
+  mod.7 <- readRDS("./output/rds/brm_5.6")
 mod.7_2 <- readRDS("./output/rds/brm_7")
 mod.3_2 <- readRDS("./output/rds/brm_3")
 
