@@ -1,6 +1,3 @@
-#Set working directory
-setwd("/srv/scratch/z3516573/gitrepo/ldeli_growth")
-
 #Load libraries
 library(dplyr)
 library(magrittr)
@@ -20,6 +17,11 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
+
+# Set some prirors
+priors <- c(prior(normal(0, 10), "Intercept"),
+            prior(student_t(3, 0, 10), class = "sd"),
+            prior(student_t(3, 0, 10), class = "sigma"))
 
 brm_7 <- brm(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
