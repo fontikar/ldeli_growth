@@ -1,6 +1,3 @@
-#Set working directory
-setwd("/srv/scratch/z3516573/gitrepo/ldeli_growth")
-
 #Load libraries
 library(dplyr)
 library(magrittr)
