@@ -59,13 +59,39 @@ my_theme <- theme(#legend.position = "none",
 ```{r}
 # pedigree_stats
   pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(liz_id))) %>% as.data.frame()
+
+# Number of maternal half sibs
+  pedigree_stats_mat <- data %>% group_by(treatment, dam_id)  %>% summarise(n_sire = length(unique(sire_id))) %>% as.data.frame()
+
+  # Averge number of sires per dam
+      mean_sire <- mean(pedigree_stats_mat$n_sire)
+        sd_sire <- sd(pedigree_stats_mat$n_sire)
+        range <- range(pedigree_stats_mat$n_sire)
+        one_only_mom <- (sum(pedigree_stats_mat$n_sire == 1) / nrow(pedigree_stats_mat))*100
+
+# Number of paternal half sibs
+  pedigree_stats_pat <- data %>% group_by(treatment, sire_id)  %>% summarise(n_mom = length(unique(dam_id))) %>% as.data.frame()
+
+  # Averge number of dams per sire
+      mean_dam <- mean(pedigree_stats_pat$n_mom)
+        sd_dam <- sd(pedigree_stats_pat$n_mom)
+        range_dam <- range(pedigree_stats_pat$n_mom)
+        one_only_dad <- (sum(pedigree_stats_pat$n_mom == 1) / nrow(pedigree_stats_pat))*100
+  
 ```
+
+Of the `r nrow(pedigree_stats_mat)` females in the dataset `r one_only_mom`% (`r sum(pedigree_stats_mat$n_sire == 1)` of `r nrow(pedigree_stats_mat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_sire, 2)` (SD = `r round(sd_sire, 2)`). The range of sires per dam was `r range[1]` to `r range[2]`.
+
+Of the `r nrow(pedigree_stats_pat)` females in the dataset `r one_only_dad`% (`r sum(pedigree_stats_pat$n_sire == 1)` of `r nrow(pedigree_stats_pat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_dam, 2)` (SD = `r round(sd_dam, 2)`). The range of sires per dam was `r range_dam[1]` to `r range_dam[2]`.
 
 ```{r}
 #| label: tbl-tb1
 #| tbl-cap: "Pedigree statistics for each treatment. The number of offspring and sires per dam (clutch) are provided for 23 and 29 C treatments. 'w' indicates a male not present within the breeding design resulting from mating or stored sperm from wild interactions."
 flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit()
 ```
+
+
+
 
 ## Model fitting and selection of random effects structure
 
@@ -78,9 +104,8 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
   mod.5 <- readRDS("./output/rds/brm_5")
   mod.6 <- readRDS("./output/rds/brm_6")
   mod.7 <- readRDS("./output/rds/brm_7")
-
-mod.7_2 <- readRDS("./output/rds/brm_8") # Models already fit and renames to 8 and 9
-mod.3_2 <- readRDS("./output/rds/brm_9")
+  mod.8 <- readRDS("./output/rds/brm_8") # Models already fit and renames to 8 and 9
+  mod.9 <- readRDS("./output/rds/brm_9")
 
 #Add waics
     w_mod.1 <- waic(mod.1)
@@ -90,23 +115,24 @@ mod.3_2 <- readRDS("./output/rds/brm_9")
     w_mod.5 <- waic(mod.5)
     w_mod.6 <- waic(mod.6)
     w_mod.7 <- waic(mod.7)
-  w_mod.7_2 <- waic(mod.7_2)
-  w_mod.3_2 <- waic(mod.3_2)
+    w_mod.8 <- waic(mod.8)
+    w_mod.9 <- waic(mod.9)
 
 # Add loos for comparison
-    loo_mod.1 <- add_criterion(mod.1, "loo")
-    loo_mod.2 <- add_criterion(mod.2, "loo")
-    loo_mod.3 <- add_criterion(mod.3, "loo")
-    loo_mod.4 <- add_criterion(mod.4, "loo")
-    loo_mod.5 <- add_criterion(mod.5, "loo")
-    loo_mod.6 <- add_criterion(mod.6, "loo")
-    loo_mod.7 <- add_criterion(mod.7, "loo")
-  loo_mod.7_2 <- add_criterion(mod.7_2, "loo")
-  loo_mod.3_2 <- add_criterion(mod.3_2, "loo")
-#Compare
-loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.3_2, w_mod.7_2)
+    loo_mod.1 <- add_criterion(mod.1, "loo", moment_match = TRUE)
+    loo_mod.2 <- add_criterion(mod.2, "loo", moment_match = TRUE)
+    loo_mod.3 <- add_criterion(mod.3, "loo", moment_match = TRUE)
+    loo_mod.4 <- add_criterion(mod.4, "loo", moment_match = TRUE)
+    loo_mod.5 <- add_criterion(mod.5, "loo", moment_match = TRUE)
+    loo_mod.6 <- add_criterion(mod.6, "loo", moment_match = TRUE)
+    loo_mod.7 <- add_criterion(mod.7, "loo", moment_match = TRUE)
+    loo_mod.8 <- add_criterion(mod.8, "loo", moment_match = TRUE)
+    loo_mod.9 <- add_criterion(mod.9, "loo", moment_match = TRUE)
 
-loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.3_2, loo_mod.7_2)
+#Compare
+loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
+
+loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
 
 #Tabulating
 random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
