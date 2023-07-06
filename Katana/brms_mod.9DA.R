@@ -18,18 +18,23 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
-
 # Reviewer 2 Suggestion to Drop M
 
-brm_3 <- brm(lnMass ~ 1 +
+# Set some prirors
+priors <- c(prior(normal(0, 10), "Intercept"),
+            prior(student_t(3, 0, 10), class = "sd"),
+            prior(student_t(3, 0, 10), class = "sigma"))
+
+brm_9 <- brm(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) +  
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | id),
                family = gaussian(),
                data2 = list(G_VCV = G_VCV),
+               prior = priors,
                data = data_DA, 
-               chains = 4, cores = 4, iter = 4000, warmup = 1500, thin = 5,
-               control = list(adapt_delta = 0.98))
+               chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
+               control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-add_criterion(brm_3, c("waic", "loo"), moment_match = TRUE)
+add_criterion(brm_9, c("waic", "loo"), moment_match = TRUE)
 
-saveRDS(brm_3, "output/rds/brm_3")
+saveRDS(brm_9, "output/rds/brm_9")
