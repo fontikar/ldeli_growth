@@ -119,20 +119,77 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
     w_mod.9 <- waic(mod.9)
 
 # Add loos for comparison
-    loo_mod.1 <- add_criterion(mod.1, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.2 <- add_criterion(mod.2, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.3 <- add_criterion(mod.3, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.4 <- add_criterion(mod.4, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.5 <- add_criterion(mod.5, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.6 <- add_criterion(mod.6, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.7 <- add_criterion(mod.7, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.8 <- add_criterion(mod.8, "loo", moment_match = TRUE, reloo = TRUE)
-    loo_mod.9 <- add_criterion(mod.9, "loo", moment_match = TRUE, reloo = TRUE)
+    loo_mod.1 <- add_criterion(mod.1, "loo", moment_match = TRUE)
+    loo_mod.2 <- add_criterion(mod.2, "loo", moment_match = TRUE)
+    loo_mod.3 <- add_criterion(mod.3, "loo", moment_match = TRUE)
+    loo_mod.4 <- add_criterion(mod.4, "loo", moment_match = TRUE)
+    loo_mod.5 <- add_criterion(mod.5, "loo", moment_match = TRUE)
+    loo_mod.6 <- add_criterion(mod.6, "loo", moment_match = TRUE)
+    loo_mod.7 <- add_criterion(mod.7, "loo", moment_match = TRUE)
+    loo_mod.8 <- add_criterion(mod.8, "loo", moment_match = TRUE)
+    loo_mod.9 <- add_criterion(mod.9, "loo", moment_match = TRUE)
 
 #Compare
-loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
+  waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
+  write.csv(waic_mods, "./output/tables/fulldata/waic_mods.csv")
 
-loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
+  loo_mods <- loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
+  write.csv(loo_mods, "./output/tables/fulldata/loo_mods.csv")
+
+# Seperated data - cold
+
+  mod.1_cold <- readRDS("./output/rds/brm_1_cold")
+  mod.2_cold <- readRDS("./output/rds/brm_2_cold")
+  mod.3_cold <- readRDS("./output/rds/brm_3_cold")
+  mod.4_cold <- readRDS("./output/rds/brm_4_cold")
+  mod.5_cold <- readRDS("./output/rds/brm_5_cold")
+  mod.6_cold <- readRDS("./output/rds/brm_6_cold")
+  mod.7_cold <- readRDS("./output/rds/brm_7_cold")
+  mod.8_cold <- readRDS("./output/rds/brm_8_cold") 
+  mod.9_cold <- readRDS("./output/rds/brm_9_cold")
+
+#Add waics
+    w_mod.1_cold <- waic(mod.1_cold)
+    w_mod.2_cold <- waic(mod.2_cold)
+    w_mod.3_cold <- waic(mod.3_cold)
+    w_mod.4_cold <- waic(mod.4_cold)
+    w_mod.5_cold <- waic(mod.5_cold)
+    w_mod.6_cold <- waic(mod.6_cold)
+    w_mod.7_cold <- waic(mod.7_cold)
+    w_mod.8_cold <- waic(mod.8_cold)
+    w_mod.9_cold <- waic(mod.9_cold)
+
+# Add loos for comparison
+    loo_mod.1_cold <- add_criterion(mod.1_cold, "kfold",  k = 10)
+    loo_mod.2_cold <- add_criterion(mod.2_cold, "loo", moment_match = TRUE)
+    loo_mod.3_cold <- add_criterion(mod.3_cold, "loo", moment_match = TRUE)
+    loo_mod.4_cold <- add_criterion(mod.4_cold, "loo", moment_match = TRUE)
+    loo_mod.5_cold <- add_criterion(mod.5_cold, "loo", moment_match = TRUE)
+    loo_mod.6_cold <- add_criterion(mod.6_cold, "loo", moment_match = TRUE)
+    loo_mod.7_cold <- add_criterion(mod.7_cold, "loo", moment_match = TRUE)
+    loo_mod.8_cold <- add_criterion(mod.8_cold, "loo", moment_match = TRUE)
+    loo_mod.9_cold <- add_criterion(mod.9_cold, "loo", moment_match = TRUE)
+
+#Compare
+  waic_mods_cold <- loo_compare(w_mod.1_cold, w_mod.2_cold, w_mod.3_cold, w_mod.4_cold, w_mod.5_cold, w_mod.6_cold, w_mod.7_cold, w_mod.8_cold, w_mod.9_cold)
+  write.csv(waic_mods_cold, "./output/tables/cold/waic_mods_cold.csv")
+
+  loo_mods_cold <- loo_compare(loo_mod.1_cold, loo_mod.2_cold, loo_mod.3_cold, loo_mod.4_cold, loo_mod.5_cold, loo_mod.6_cold, loo_mod.7_cold, loo_mod.8_cold, loo_mod.9_cold)
+  write.csv(loo_mods_cold, "./output/tables/cold/loo_mods_cold.csv")
+
+
+# Seperated data - hot
+
+  mod.1_hot <- readRDS("./output/rds/brm_1_hot")
+  mod.2_hot <- readRDS("./output/rds/brm_2_hot")
+  mod.3_hot <- readRDS("./output/rds/brm_3_hot")
+  mod.4_hot <- readRDS("./output/rds/brm_4_hot")
+  mod.5_hot <- readRDS("./output/rds/brm_5_hot")
+  mod.6_hot <- readRDS("./output/rds/brm_6_hot")
+  mod.7_hot <- readRDS("./output/rds/brm_7_hot")
+  mod.8_hot <- readRDS("./output/rds/brm_8_hot") 
+  mod.9_hot <- readRDS("./output/rds/brm_9_hot")
+
 
 #Tabulating
 random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
