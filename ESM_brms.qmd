@@ -161,14 +161,14 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 # Add loos for comparison
     loo_mod.1_cold <- add_criterion(mod.1_cold, "kfold",  k = 10)
-    loo_mod.2_cold <- add_criterion(mod.2_cold, "loo", moment_match = TRUE)
-    loo_mod.3_cold <- add_criterion(mod.3_cold, "loo", moment_match = TRUE)
-    loo_mod.4_cold <- add_criterion(mod.4_cold, "loo", moment_match = TRUE)
-    loo_mod.5_cold <- add_criterion(mod.5_cold, "loo", moment_match = TRUE)
-    loo_mod.6_cold <- add_criterion(mod.6_cold, "loo", moment_match = TRUE)
-    loo_mod.7_cold <- add_criterion(mod.7_cold, "loo", moment_match = TRUE)
-    loo_mod.8_cold <- add_criterion(mod.8_cold, "loo", moment_match = TRUE)
-    loo_mod.9_cold <- add_criterion(mod.9_cold, "loo", moment_match = TRUE)
+    loo_mod.2_cold <- add_criterion(mod.2_cold, "kfold",  k = 10)
+    loo_mod.3_cold <- add_criterion(mod.3_cold, "kfold",  k = 10)
+    loo_mod.4_cold <- add_criterion(mod.4_cold, "kfold",  k = 10)
+    loo_mod.5_cold <- add_criterion(mod.5_cold, "kfold",  k = 10)
+    loo_mod.6_cold <- add_criterion(mod.6_cold, "kfold",  k = 10)
+    loo_mod.7_cold <- add_criterion(mod.7_cold, "kfold",  k = 10)
+    loo_mod.8_cold <- add_criterion(mod.8_cold, "kfold",  k = 10)
+    loo_mod.9_cold <- add_criterion(mod.9_cold, "kfold",  k = 10)
 
 #Compare
   waic_mods_cold <- loo_compare(w_mod.1_cold, w_mod.2_cold, w_mod.3_cold, w_mod.4_cold, w_mod.5_cold, w_mod.6_cold, w_mod.7_cold, w_mod.8_cold, w_mod.9_cold)
