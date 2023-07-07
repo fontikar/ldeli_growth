@@ -123,15 +123,15 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 # Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
 rerun = FALSE
   if(rerun){
-    loo_mod.1 <- add_criterion(mod.1, "loo", moment_match = TRUE)
-    loo_mod.2 <- add_criterion(mod.2, "loo", moment_match = TRUE)
-    loo_mod.3 <- add_criterion(mod.3, "loo", moment_match = TRUE)
-    loo_mod.4 <- add_criterion(mod.4, "loo", moment_match = TRUE)
-    loo_mod.5 <- add_criterion(mod.5, "loo", moment_match = TRUE)
-    loo_mod.6 <- add_criterion(mod.6, "loo", moment_match = TRUE)
-    loo_mod.7 <- add_criterion(mod.7, "loo", moment_match = TRUE)
-    loo_mod.8 <- add_criterion(mod.8, "loo", moment_match = TRUE)
-    loo_mod.9 <- add_criterion(mod.9, "loo", moment_match = TRUE)
+    loo_mod.1 <- add_criterion(mod.1,  "kfold",  k = 10)
+    loo_mod.2 <- add_criterion(mod.2,  "kfold",  k = 10)
+    loo_mod.3 <- add_criterion(mod.3,  "kfold",  k = 10)
+    loo_mod.4 <- add_criterion(mod.4,  "kfold",  k = 10)
+    loo_mod.5 <- add_criterion(mod.5,  "kfold",  k = 10)
+    loo_mod.6 <- add_criterion(mod.6,  "kfold",  k = 10)
+    loo_mod.7 <- add_criterion(mod.7,  "kfold",  k = 10)
+    loo_mod.8 <- add_criterion(mod.8,  "kfold",  k = 10)
+    loo_mod.9 <- add_criterion(mod.9,  "kfold",  k = 10)
   }
 #Compare
   waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
