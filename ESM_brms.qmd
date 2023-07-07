@@ -41,6 +41,7 @@ data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth.csv", st
 data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
 
 source("./R/Analysis/brms functions.R")
+load("./output/kfold/kfold.RData") # Reloads the kfold models for model selection
 
 #ggplot theme
 my_theme <- theme(#legend.position = "none",
@@ -90,12 +91,13 @@ Of the `r nrow(pedigree_stats_pat)` females in the dataset `r one_only_dad`% (`r
 flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit()
 ```
 
-
-
-
 ## Model fitting and selection of random effects structure
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
+########################
+## Full data
+########################
+
 #Read in models
   mod.1 <- readRDS("./output/rds/brm_1")
   mod.2 <- readRDS("./output/rds/brm_2")
@@ -118,7 +120,9 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
     w_mod.8 <- waic(mod.8)
     w_mod.9 <- waic(mod.9)
 
-# Add loos for comparison
+# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
+rerun = FALSE
+  if(rerun){
     loo_mod.1 <- add_criterion(mod.1, "loo", moment_match = TRUE)
     loo_mod.2 <- add_criterion(mod.2, "loo", moment_match = TRUE)
     loo_mod.3 <- add_criterion(mod.3, "loo", moment_match = TRUE)
@@ -128,7 +132,7 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
     loo_mod.7 <- add_criterion(mod.7, "loo", moment_match = TRUE)
     loo_mod.8 <- add_criterion(mod.8, "loo", moment_match = TRUE)
     loo_mod.9 <- add_criterion(mod.9, "loo", moment_match = TRUE)
-
+  }
 #Compare
   waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
   write.csv(waic_mods, "./output/tables/fulldata/waic_mods.csv")
@@ -136,8 +140,9 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
   loo_mods <- loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
   write.csv(loo_mods, "./output/tables/fulldata/loo_mods.csv")
 
+########################
 # Seperated data - cold
-
+########################
   mod.1_cold <- readRDS("./output/rds/brm_1_cold")
   mod.2_cold <- readRDS("./output/rds/brm_2_cold")
   mod.3_cold <- readRDS("./output/rds/brm_3_cold")
@@ -160,6 +165,9 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
     w_mod.9_cold <- waic(mod.9_cold)
 
 # Add loos for comparison
+
+# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
+if(rerun){
     loo_mod.1_cold <- add_criterion(mod.1_cold, "kfold",  k = 10)
     loo_mod.2_cold <- add_criterion(mod.2_cold, "kfold",  k = 10)
     loo_mod.3_cold <- add_criterion(mod.3_cold, "kfold",  k = 10)
@@ -169,6 +177,7 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
     loo_mod.7_cold <- add_criterion(mod.7_cold, "kfold",  k = 10)
     loo_mod.8_cold <- add_criterion(mod.8_cold, "kfold",  k = 10)
     loo_mod.9_cold <- add_criterion(mod.9_cold, "kfold",  k = 10)
+}
 
 #Compare
   waic_mods_cold <- loo_compare(w_mod.1_cold, w_mod.2_cold, w_mod.3_cold, w_mod.4_cold, w_mod.5_cold, w_mod.6_cold, w_mod.7_cold, w_mod.8_cold, w_mod.9_cold)
@@ -177,9 +186,9 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
   loo_mods_cold <- loo_compare(loo_mod.1_cold, loo_mod.2_cold, loo_mod.3_cold, loo_mod.4_cold, loo_mod.5_cold, loo_mod.6_cold, loo_mod.7_cold, loo_mod.8_cold, loo_mod.9_cold)
   write.csv(loo_mods_cold, "./output/tables/cold/loo_mods_cold.csv")
 
-
+########################
 # Seperated data - hot
-
+########################
   mod.1_hot <- readRDS("./output/rds/brm_1_hot")
   mod.2_hot <- readRDS("./output/rds/brm_2_hot")
   mod.3_hot <- readRDS("./output/rds/brm_3_hot")
@@ -190,8 +199,38 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
   mod.8_hot <- readRDS("./output/rds/brm_8_hot") 
   mod.9_hot <- readRDS("./output/rds/brm_9_hot")
 
+#Add waics
+    w_mod.1_hot <- waic(mod.1_hot)
+    w_mod.2_hot <- waic(mod.2_hot)
+    w_mod.3_hot <- waic(mod.3_hot)
+    w_mod.4_hot <- waic(mod.4_hot)
+    w_mod.5_hot <- waic(mod.5_hot)
+    w_mod.6_hot <- waic(mod.6_hot)
+    w_mod.7_hot <- waic(mod.7_hot)
+    w_mod.8_hot <- waic(mod.8_hot)
+    w_mod.9_hot <- waic(mod.9_hot)
 
+# Add loos for comparison
+
+# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
+if(rerun){
+    loo_mod.1_hot <- add_criterion(mod.1_hot, "kfold",  k = 10)
+    loo_mod.2_hot <- add_criterion(mod.2_hot, "kfold",  k = 10)
+    loo_mod.3_hot <- add_criterion(mod.3_hot, "kfold",  k = 10)
+    loo_mod.4_hot <- add_criterion(mod.4_hot, "kfold",  k = 10)
+    loo_mod.5_hot <- add_criterion(mod.5_hot, "kfold",  k = 10)
+    loo_mod.6_hot <- add_criterion(mod.6_hot, "kfold",  k = 10)
+    loo_mod.7_hot <- add_criterion(mod.7_hot, "kfold",  k = 10)
+    loo_mod.8_hot <- add_criterion(mod.8_hot, "kfold",  k = 10)
+    loo_mod.9_hot <- add_criterion(mod.9_hot, "kfold",  k = 10)
+}
+
+# Save all the R objects in working environment to save time
+  save.image("output/kfold/kfold.RData")
+
+#################
 #Tabulating
+#################
 random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
 colnames(random_waic) <- c("Model", "wAIC", "elpd_diff", "se_diff")
 
