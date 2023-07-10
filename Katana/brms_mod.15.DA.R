@@ -27,7 +27,7 @@ priors <- c(prior(normal(0, 10), "Intercept"),
 
 # Reviewer 2 Suggestion to Drop M
 
-brm_17 <- brm(lnMass ~ 1 +
+brm_15 <- brm(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)),
                family = gaussian(),
                data2 = list(G_VCV = G_VCV),
@@ -36,9 +36,9 @@ brm_17 <- brm(lnMass ~ 1 +
                chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
                control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-add_criterion(brm_17, c("waic", "loo"), moment_match = TRUE)
+add_criterion(brm_15, c("waic", "loo"), moment_match = TRUE)
 
-saveRDS(brm_17, "output/rds/brm_17")
+saveRDS(brm_15, "output/rds/brm_15")
 
 # MCMCglmm
 
