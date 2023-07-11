@@ -31,7 +31,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp, janitor, flextable)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, latex2exp, janitor, flextable, readxl, writexl)
 
 #Read in dataset
 #Complete
@@ -98,43 +98,92 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 ## Full data
 ########################
 
-#Read in models
-  mod.1 <- readRDS("./output/rds/brm_1")
-  mod.2 <- readRDS("./output/rds/brm_2")
-  mod.3 <- readRDS("./output/rds/brm_3")
-  mod.4 <- readRDS("./output/rds/brm_4")
-  mod.5 <- readRDS("./output/rds/brm_5")
-  mod.6 <- readRDS("./output/rds/brm_6")
-  mod.7 <- readRDS("./output/rds/brm_7")
-  mod.8 <- readRDS("./output/rds/brm_8") # Models already fit and renames to 8 and 9
-  mod.9 <- readRDS("./output/rds/brm_9")
+  #Read in models
+           models <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x)))
+    names(models) <- paste0("mod_", 1:16)
 
-#Add waics
-    w_mod.1 <- waic(mod.1)
-    w_mod.2 <- waic(mod.2)
-    w_mod.3 <- waic(mod.3)
-    w_mod.4 <- waic(mod.4)
-    w_mod.5 <- waic(mod.5)
-    w_mod.6 <- waic(mod.6)
-    w_mod.7 <- waic(mod.7)
-    w_mod.8 <- waic(mod.8)
-    w_mod.9 <- waic(mod.9)
+  # R2 of models
+         r2_table <- plyr::ldply(lapply(models, function(x) bayes_R2(x)))
+
+  # waic
+       waic_table <- lapply(models, function(x) waic(x))
+  waic_table_comp <- loo_compare(waic_table) 
+  lapply(models, function(x) dim(x$data)[1])
+
+  # loo
+        loo_table <- lapply(models, function(x) loo(x, moment_match = TRUE))
+   loo_table_comp <- loo_compare(loo_table)
+
+  # Lets write all these results to a table
+  write_xlsx(list(  r2_all = r2_table,
+                  waic_all = waic_table_comp, 
+                   loo_all = loo_table_comp), path = "models_results.xlsx")
+
+########################
+## Cold data
+########################
+
+  #Read in models
+           models_cold <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x, "_cold")))
+    names(models_cold) <- paste0("mod_", 1:16, "_cold")
+
+  # R2 of models_cold
+         r2_table_cold <- plyr::ldply(lapply(models_cold, function(x) bayes_R2(x)))
+
+  # waic
+       waic_table_cold <- lapply(models_cold, function(x) waic(x))
+  waic_table_comp_cold <- loo_compare(waic_table_cold) 
+  lapply(models_cold, function(x) dim(x$data)[1])
+
+  # loo
+        loo_table_cold <- lapply(models_cold, function(x) loo(x, moment_match = TRUE))
+   loo_table_comp_cold <- loo_compare(loo_table_cold)
+
+  # Lets write all these results to a table
+  write_xlsx(list(  r2_cold = r2_table_cold,
+                  waic_cold = waic_table_comp_cold, 
+                   loo_cold = loo_table_comp_cold), path = "models_results_cold.xlsx")
+
+########################
+## Hot data
+########################
+
+  #Read in models
+           models_hot <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x, "_hot")))
+    names(models_hot) <- paste0("mod_", 1:16, "_hot")
+
+  # R2 of models_hot
+         r2_table_hot <- plyr::ldply(lapply(models_hot, function(x) bayes_R2(x)))
+
+  # waic
+       waic_table_hot <- lapply(models_hot, function(x) waic(x))
+  waic_table_comp_hot <- loo_compare(waic_table_hot) 
+  lapply(models_hot, function(x) dim(x$data)[1])
+
+  # loo
+        loo_table_hot <- lapply(models_hot, function(x) loo(x, moment_match = TRUE))
+   loo_table_comp_hot <- loo_compare(loo_table_hot)
+
+  # Lets write all these results to a table
+  write_xlsx(list(  r2_hot = r2_table_hot,
+                  waic_hot = waic_table_comp_hot, 
+                   loo_hot = loo_table_comp_hot), path = "models_results_hot.xlsx")
 
 # Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
 rerun = FALSE
   if(rerun){
-    loo_mod.1 <- add_criterion(mod.1,  "kfold",  k = 10)
-    loo_mod.2 <- add_criterion(mod.2,  "kfold",  k = 10)
-    loo_mod.3 <- add_criterion(mod.3,  "kfold",  k = 10)
-    loo_mod.4 <- add_criterion(mod.4,  "kfold",  k = 10)
-    loo_mod.5 <- add_criterion(mod.5,  "kfold",  k = 10)
-    loo_mod.6 <- add_criterion(mod.6,  "kfold",  k = 10)
-    loo_mod.7 <- add_criterion(mod.7,  "kfold",  k = 10)
-    loo_mod.8 <- add_criterion(mod.8,  "kfold",  k = 10)
-    loo_mod.9 <- add_criterion(mod.9,  "kfold",  k = 10)
+    loo_mod.1 <- add_criterion(mod.1,  "loo")
+    loo_mod.2 <- add_criterion(mod.2,  "loo")
+    loo_mod.3 <- add_criterion(mod.3,  "loo")
+    loo_mod.4 <- add_criterion(mod.4,  "loo")
+    loo_mod.5 <- add_criterion(mod.5,  "loo")
+    loo_mod.6 <- add_criterion(mod.6,  "loo")
+    loo_mod.7 <- add_criterion(mod.7,  "loo")
+    loo_mod.8 <- add_criterion(mod.8,  "loo")
+    loo_mod.9 <- add_criterion(mod.9,  "loo")
   }
 #Compare
-  waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9)
+  waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9, w_mod.10, w_mod.11, w_mod.12, w_mod.13, w_mod.14, w_mod.15, w_mod.16)
   write.csv(waic_mods, "./output/tables/fulldata/waic_mods.csv")
 
   loo_mods <- loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
