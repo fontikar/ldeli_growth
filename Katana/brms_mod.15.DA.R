@@ -39,26 +39,3 @@ brm_15 <- brm(lnMass ~ 1 +
 add_criterion(brm_15, c("waic", "loo"), moment_match = TRUE)
 
 saveRDS(brm_15, "output/rds/brm_15")
-
-# MCMCglmm
-
-priorB<-list(G = list(G1 = list(V  = diag(3), 
-	                               nu = 3, 
-	                         alpha.mu = rep(0,3), 
-	                          alpha.V = diag(25^2,3,3)),
-                        G2 = list(V = diag(1), 
-	                               nu = 1, 
-	                         alpha.mu = rep(0,1), 
-	                          alpha.V = diag(25^2,1,1))),
-	             R = list(V = 1, nu = 0.002)) 
-
-invA <- as(ginv(G_VCV), "dgCMatrix")
-dimnames(invA) <- list(rownames(G_VCV), rownames(G_VCV))
-
-mod_tets <- mclapply(1:3, function(i) MCMCglmm::MCMCglmm(
-		      lnMass ~ 1, 
-		      random = ~us(1 + z_days_since_hatch + z_days_since_hatch_I2):F1_Genotype + id,  
-		      ginverse= list(F1_Genotype = invA),
-		      data = data_DA, family = "gaussian", 
-		      nitt = 550000, burnin = 50000, thin = 5, prior = priorB,
-		      verbose = T))
