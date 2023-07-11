@@ -95,24 +95,41 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 ```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
 ########################
+### Load data 
+### with Detailed Model Names
+########################
+  # Bring data file with details of models 
+     model_names <- read_xlsx("models_table.xlsx", sheet = "model structure", skip = 2)
+    Names_Models <- model_names[,c("Model Name", "Name Detail")]
+
+########################
 ## Full data
 ########################
+  # What model numbers?
+    mod_nums <- seq(1,16, 1)
 
   #Read in models
-           models <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x)))
-    names(models) <- paste0("mod_", 1:16)
+           models <- lapply(mod_nums, function(x) readRDS(paste0("./output/rds/brm_", x)))
+    names(models) <- paste0("mod_", mod_nums)
 
   # R2 of models
          r2_table <- plyr::ldply(lapply(models, function(x) bayes_R2(x)))
+         r2_table <- left_join(r2_table, Names_Models, by = c(".id" = "Model Name"))
+         r2_table <- r2_table %>% select("Name Detail", "Estimate", "Q2.5", "Q97.5")
 
   # waic
-       waic_table <- lapply(models, function(x) waic(x))
-  waic_table_comp <- loo_compare(waic_table) 
-  lapply(models, function(x) dim(x$data)[1])
+        waic_table <- lapply(models, function(x) waic(x))
+   waic_table_comp <- data.frame(loo_compare(waic_table))
+waic_table_comp$id <- row.names(waic_table_comp)
+   waic_table_comp <- left_join(waic_table_comp, Names_Models, by = c("id" = "Model Name"))
+   waic_table_comp <- waic_table_comp %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
-  # loo
+  # loo - sensitivity analysis
         loo_table <- lapply(models, function(x) loo(x, moment_match = TRUE))
    loo_table_comp <- loo_compare(loo_table)
+   loo_table_comp$id <- row.names(loo_table_comp)
+   loo_table_comp <- left_join(loo_table_comp, Names_Models, by = c("id" = "Model Name"))
+   loo_table_comp <- loo_table_comp %>% select("Name Detail", "loo", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_all = r2_table,
@@ -122,22 +139,30 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 ########################
 ## Cold data
 ########################
-
+  # What model numbers?
+    mod_nums <- seq(1,9, 1)
+  
   #Read in models
-           models_cold <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x, "_cold")))
-    names(models_cold) <- paste0("mod_", 1:16, "_cold")
+           models_cold <- lapply(mod_nums, function(x) readRDS(paste0("./output/rds/brm_", x, "_cold")))
+    names(models_cold) <- paste0("mod_", mod_nums)
 
   # R2 of models_cold
          r2_table_cold <- plyr::ldply(lapply(models_cold, function(x) bayes_R2(x)))
-
+         r2_table_cold <- left_join(r2_table_cold, Names_Models, by = c(".id" = "Model Name"))
+         r2_table_cold <- r2_table_cold %>% select("Name Detail", "Estimate", "Q2.5", "Q97.5")
   # waic
        waic_table_cold <- lapply(models_cold, function(x) waic(x))
-  waic_table_comp_cold <- loo_compare(waic_table_cold) 
-  lapply(models_cold, function(x) dim(x$data)[1])
+  waic_table_comp_cold <- data.frame(loo_compare(waic_table_cold))
+  waic_table_comp_cold$id <- row.names(waic_table_comp_cold)
+  waic_table_comp_cold <- left_join(waic_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
+  waic_table_comp_cold <- waic_table_comp_cold %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # loo
         loo_table_cold <- lapply(models_cold, function(x) loo(x, moment_match = TRUE))
-   loo_table_comp_cold <- loo_compare(loo_table_cold)
+   loo_table_comp_cold <- data.frame(loo_compare(loo_table_cold))
+    loo_table_comp_cold$id <- row.names(loo_table_comp_cold)
+    loo_table_comp_cold <- left_join(loo_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
+    loo_table_comp_cold <- loo_table_comp_cold %>% select("Name Detail", "loo", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_cold = r2_table_cold,
@@ -147,27 +172,37 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 ########################
 ## Hot data
 ########################
-
+  # What model numbers?
+    mod_nums <- seq(1,16, 1)
+  
   #Read in models
-           models_hot <- lapply(1:16, function(x) readRDS(paste0("./output/rds/brm_", x, "_hot")))
-    names(models_hot) <- paste0("mod_", 1:16, "_hot")
+           models_hot <- lapply(mod_nums, function(x) readRDS(paste0("./output/rds/brm_", x, "_hot")))
+    names(models_hot) <- paste0("mod_", mod_nums)
 
   # R2 of models_hot
          r2_table_hot <- plyr::ldply(lapply(models_hot, function(x) bayes_R2(x)))
+         r2_table_hot <- left_join(r2_table_hot, Names_Models, by = c(".id" = "Model Name"))
+         r2_table_hot <- r2_table_hot %>% select("Name Detail", "Estimate", "Q2.5", "Q97.5")
 
   # waic
        waic_table_hot <- lapply(models_hot, function(x) waic(x))
-  waic_table_comp_hot <- loo_compare(waic_table_hot) 
-  lapply(models_hot, function(x) dim(x$data)[1])
+  waic_table_comp_hot <- data.frame(loo_compare(waic_table_hot))
+  waic_table_comp_hot$id <- row.names(waic_table_comp_hot)
+  waic_table_comp_hot <- left_join(waic_table_comp_hot, Names_Models, by = c("id" = "Model Name"))
+  waic_table_comp_hot <- waic_table_comp_hot %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # loo
         loo_table_hot <- lapply(models_hot, function(x) loo(x, moment_match = TRUE))
-   loo_table_comp_hot <- loo_compare(loo_table_hot)
+   loo_table_comp_hot <- data.frame(loo_compare(loo_table_hot))
+    loo_table_comp_hot$id <- row.names(loo_table_comp_hot)
+    loo_table_comp_hot <- left_join(loo_table_comp_hot, Names_Models, by = c("id" = "Model Name"))
+    loo_table_comp_hot <- loo_table_comp_hot %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_hot = r2_table_hot,
                   waic_hot = waic_table_comp_hot, 
                    loo_hot = loo_table_comp_hot), path = "models_results_hot.xlsx")
+
 
 # Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
 rerun = FALSE
@@ -189,134 +224,10 @@ rerun = FALSE
   loo_mods <- loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
   write.csv(loo_mods, "./output/tables/fulldata/loo_mods.csv")
 
-########################
-# Seperated data - cold
-########################
-  mod.1_cold <- readRDS("./output/rds/brm_1_cold")
-  mod.2_cold <- readRDS("./output/rds/brm_2_cold")
-  mod.3_cold <- readRDS("./output/rds/brm_3_cold")
-  mod.4_cold <- readRDS("./output/rds/brm_4_cold")
-  mod.5_cold <- readRDS("./output/rds/brm_5_cold")
-  mod.6_cold <- readRDS("./output/rds/brm_6_cold")
-  mod.7_cold <- readRDS("./output/rds/brm_7_cold")
-  mod.8_cold <- readRDS("./output/rds/brm_8_cold") 
-  mod.9_cold <- readRDS("./output/rds/brm_9_cold")
-
-#Add waics
-    w_mod.1_cold <- waic(mod.1_cold)
-    w_mod.2_cold <- waic(mod.2_cold)
-    w_mod.3_cold <- waic(mod.3_cold)
-    w_mod.4_cold <- waic(mod.4_cold)
-    w_mod.5_cold <- waic(mod.5_cold)
-    w_mod.6_cold <- waic(mod.6_cold)
-    w_mod.7_cold <- waic(mod.7_cold)
-    w_mod.8_cold <- waic(mod.8_cold)
-    w_mod.9_cold <- waic(mod.9_cold)
-
-# Add loos for comparison
-
-# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
-if(rerun){
-    loo_mod.1_cold <- add_criterion(mod.1_cold, "kfold",  k = 10)
-    loo_mod.2_cold <- add_criterion(mod.2_cold, "kfold",  k = 10)
-    loo_mod.3_cold <- add_criterion(mod.3_cold, "kfold",  k = 10)
-    loo_mod.4_cold <- add_criterion(mod.4_cold, "kfold",  k = 10)
-    loo_mod.5_cold <- add_criterion(mod.5_cold, "kfold",  k = 10)
-    loo_mod.6_cold <- add_criterion(mod.6_cold, "kfold",  k = 10)
-    loo_mod.7_cold <- add_criterion(mod.7_cold, "kfold",  k = 10)
-    loo_mod.8_cold <- add_criterion(mod.8_cold, "kfold",  k = 10)
-    loo_mod.9_cold <- add_criterion(mod.9_cold, "kfold",  k = 10)
-}
-
-#Compare
-  waic_mods_cold <- loo_compare(w_mod.1_cold, w_mod.2_cold, w_mod.3_cold, w_mod.4_cold, w_mod.5_cold, w_mod.6_cold, w_mod.7_cold, w_mod.8_cold, w_mod.9_cold)
-  write.csv(waic_mods_cold, "./output/tables/cold/waic_mods_cold.csv")
-
-  loo_mods_cold <- loo_compare(loo_mod.1_cold, loo_mod.2_cold, loo_mod.3_cold, loo_mod.4_cold, loo_mod.5_cold, loo_mod.6_cold, loo_mod.7_cold, loo_mod.8_cold, loo_mod.9_cold)
-  write.csv(loo_mods_cold, "./output/tables/cold/loo_mods_cold.csv")
-
-########################
-# Seperated data - hot
-########################
-  mod.1_hot <- readRDS("./output/rds/brm_1_hot")
-  mod.2_hot <- readRDS("./output/rds/brm_2_hot")
-  mod.3_hot <- readRDS("./output/rds/brm_3_hot")
-  mod.4_hot <- readRDS("./output/rds/brm_4_hot")
-  mod.5_hot <- readRDS("./output/rds/brm_5_hot")
-  mod.6_hot <- readRDS("./output/rds/brm_6_hot")
-  mod.7_hot <- readRDS("./output/rds/brm_7_hot")
-  mod.8_hot <- readRDS("./output/rds/brm_8_hot") 
-  mod.9_hot <- readRDS("./output/rds/brm_9_hot")
-
-#Add waics
-    w_mod.1_hot <- waic(mod.1_hot)
-    w_mod.2_hot <- waic(mod.2_hot)
-    w_mod.3_hot <- waic(mod.3_hot)
-    w_mod.4_hot <- waic(mod.4_hot)
-    w_mod.5_hot <- waic(mod.5_hot)
-    w_mod.6_hot <- waic(mod.6_hot)
-    w_mod.7_hot <- waic(mod.7_hot)
-    w_mod.8_hot <- waic(mod.8_hot)
-    w_mod.9_hot <- waic(mod.9_hot)
-
-# Add loos for comparison
-
-# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
-if(rerun){
-    loo_mod.1_hot <- add_criterion(mod.1_hot, "kfold",  k = 10)
-    loo_mod.2_hot <- add_criterion(mod.2_hot, "kfold",  k = 10)
-    loo_mod.3_hot <- add_criterion(mod.3_hot, "kfold",  k = 10)
-    loo_mod.4_hot <- add_criterion(mod.4_hot, "kfold",  k = 10)
-    loo_mod.5_hot <- add_criterion(mod.5_hot, "kfold",  k = 10)
-    loo_mod.6_hot <- add_criterion(mod.6_hot, "kfold",  k = 10)
-    loo_mod.7_hot <- add_criterion(mod.7_hot, "kfold",  k = 10)
-    loo_mod.8_hot <- add_criterion(mod.8_hot, "kfold",  k = 10)
-    loo_mod.9_hot <- add_criterion(mod.9_hot, "kfold",  k = 10)
-}
-
 # Save all the R objects in working environment to save time
   save.image("output/kfold/kfold.RData")
 
-#################
-#Tabulating
-#################
-random_waic <- data.frame(matrix(nrow = 7, ncol = 4))
-colnames(random_waic) <- c("Model", "wAIC", "elpd_diff", "se_diff")
 
-random_waic[1,1] <- c("Model 7 - intercept for PE, quadratic slopes for G, M") 
-random_waic[2,1] <- c("Model 3 - quadratic slopes for G, M, PE")
-random_waic[3,1] <- c("Model 6 - intercept for PE, linear slopes for G, M")
-random_waic[4,1] <- c("Model 4 - intercept for G, linear slopes for M, PE") 
-random_waic[5,1] <- c("Model 2 - linear slopes for G, M, PE")
-random_waic[6,1] <- c("Model 5 - intercept for M, linear slopes for G, PE")
-random_waic[7,1] <- c("Model 1 - intercepts for G, M, PE")
-
-#wAIC values
-random_waic[1,2] <- w_mod.7$estimates[3,1]
-random_waic[2,2] <- w_mod.3$estimates[3,1]
-random_waic[3,2] <- w_mod.6$estimates[3,1]
-random_waic[4,2] <- w_mod.4$estimates[3,1]
-random_waic[5,2] <- w_mod.2$estimates[3,1]
-random_waic[6,2] <- w_mod.5$estimates[3,1]
-random_waic[7,2] <- w_mod.1$estimates[3,1]
-
-#Expected log predictive density diff
-random_waic[1,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[1,1]
-random_waic[2,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[2,1]
-random_waic[3,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[3,1]
-random_waic[4,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[4,1]
-random_waic[5,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[5,1]
-random_waic[6,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[6,1]
-random_waic[7,3] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[7,1]
-
-#SE diff
-random_waic[1,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[1,2]
-random_waic[2,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[2,2]
-random_waic[3,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[3,2]
-random_waic[4,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[4,2]
-random_waic[5,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[5,2]
-random_waic[6,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[6,2]
-random_waic[7,4] <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7)[7,2]
 ```
 
 ```{r, echo = FALSE}
