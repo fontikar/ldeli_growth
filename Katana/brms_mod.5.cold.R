@@ -34,6 +34,4 @@ brm_5_cold <- brm(lnMass ~ 1 +
                chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
                control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-add_criterion(brm_5_cold, c("loo", "waic"), moment_match=TRUE)
-
 saveRDS(brm_5_cold, "output/rds/brm_5_cold")
