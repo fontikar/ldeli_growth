@@ -37,8 +37,6 @@ brm_8_cold <- brm(lnMass ~ 1 +
                chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
                control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
-add_criterion(brm_8_cold, c("waic", "loo"), moment_match = TRUE)
-
 saveRDS(brm_8_cold, "output/rds/brm_8_cold")
 
 # MCMCglmm
