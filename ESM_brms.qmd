@@ -161,7 +161,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
   waic_table_comp_cold <- waic_table_comp_cold %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # loo
-        loo_table_cold <- lapply(models_cold, function(x) loo(x, moment_match = TRUE))
+        loo_table_cold <- lapply(models_cold, function(x) brms::loo(x, moment_match = TRUE))
    loo_table_comp_cold <- data.frame(loo_compare(loo_table_cold))
     loo_table_comp_cold$id <- row.names(loo_table_comp_cold)
     loo_table_comp_cold <- left_join(loo_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
@@ -169,7 +169,8 @@ waic_table_comp$id <- row.names(waic_table_comp)
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_cold = r2_table_cold,
-                  waic_cold = waic_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
+                  waic_cold = waic_table_comp_cold, 
+                    loo_cold = loo_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
 
 ########################
 ## Hot data
