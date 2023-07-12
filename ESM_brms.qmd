@@ -93,7 +93,7 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 ## Model fitting and selection of random effects structure
 
-```{r, random effects, echo = FALSE, warning = FALSE, include = FALSE}
+```{r, model_select, echo = FALSE, warning = FALSE, include = FALSE}
 ########################
 ### Load data 
 ### with Detailed Model Names
@@ -126,21 +126,21 @@ waic_table_comp$id <- row.names(waic_table_comp)
 
   # loo - sensitivity analysis
         loo_table <- lapply(models, function(x) loo(x, moment_match = TRUE))
-   loo_table_comp <- loo_compare(loo_table)
+   loo_table_comp <- data.frame(loo_compare(loo_table))
    loo_table_comp$id <- row.names(loo_table_comp)
    loo_table_comp <- left_join(loo_table_comp, Names_Models, by = c("id" = "Model Name"))
-   loo_table_comp <- loo_table_comp %>% select("Name Detail", "loo", "elpd_diff", "se_diff")
+   loo_table_comp <- loo_table_comp %>% select("Name Detail", "looic", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_all = r2_table,
                   waic_all = waic_table_comp, 
-                   loo_all = loo_table_comp), path = "models_results.xlsx")
+                   loo_all = loo_table_comp), path = "./output/tables/fulldata/models_results.xlsx")
 
 ########################
 ## Cold data
 ########################
   # What model numbers?
-    mod_nums <- seq(1,9, 1)
+    mod_nums <- seq(1,16, 1)
   
   #Read in models
            models_cold <- lapply(mod_nums, function(x) readRDS(paste0("./output/rds/brm_", x, "_cold")))
@@ -167,7 +167,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
   # Lets write all these results to a table
   write_xlsx(list(  r2_cold = r2_table_cold,
                   waic_cold = waic_table_comp_cold, 
-                   loo_cold = loo_table_comp_cold), path = "models_results_cold.xlsx")
+                   loo_cold = loo_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
 
 ########################
 ## Hot data
@@ -201,33 +201,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
   # Lets write all these results to a table
   write_xlsx(list(  r2_hot = r2_table_hot,
                   waic_hot = waic_table_comp_hot, 
-                   loo_hot = loo_table_comp_hot), path = "models_results_hot.xlsx")
-
-
-# Add loos for comparison. This takes quite a long time so better to load the kfold.Rdata object
-rerun = FALSE
-  if(rerun){
-    loo_mod.1 <- add_criterion(mod.1,  "loo")
-    loo_mod.2 <- add_criterion(mod.2,  "loo")
-    loo_mod.3 <- add_criterion(mod.3,  "loo")
-    loo_mod.4 <- add_criterion(mod.4,  "loo")
-    loo_mod.5 <- add_criterion(mod.5,  "loo")
-    loo_mod.6 <- add_criterion(mod.6,  "loo")
-    loo_mod.7 <- add_criterion(mod.7,  "loo")
-    loo_mod.8 <- add_criterion(mod.8,  "loo")
-    loo_mod.9 <- add_criterion(mod.9,  "loo")
-  }
-#Compare
-  waic_mods <- loo_compare(w_mod.1, w_mod.2, w_mod.3, w_mod.4, w_mod.5, w_mod.6, w_mod.7, w_mod.8, w_mod.9, w_mod.10, w_mod.11, w_mod.12, w_mod.13, w_mod.14, w_mod.15, w_mod.16)
-  write.csv(waic_mods, "./output/tables/fulldata/waic_mods.csv")
-
-  loo_mods <- loo_compare(loo_mod.1, loo_mod.2, loo_mod.3, loo_mod.4, loo_mod.5, loo_mod.6, loo_mod.7, loo_mod.8, loo_mod.9)
-  write.csv(loo_mods, "./output/tables/fulldata/loo_mods.csv")
-
-# Save all the R objects in working environment to save time
-  save.image("output/kfold/kfold.RData")
-
-
+                   loo_hot = loo_table_comp_hot), path = "./output/tables/hot/models_results_hot.xlsx")
 ```
 
 ```{r, echo = FALSE}
@@ -240,14 +214,12 @@ flextable(random_waic)  %>% align(align = "center", part = "all") %>% autofit()
 ## Does our data have heterogenous residual variance?
 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
-brm_5.6 <- readRDS("./output/rds/brm_5.6") #Homo 
-brm_5.5 <- readRDS("./output/rds/brm_5.5") #Hetero 
-#Add waics
-w_mod.5.6 <- waic(brm_5.6)
-w_mod.5.5 <- waic(brm_5.5)
+    mod_12 <- readRDS("./output/rds/brm_12") #Homo. Top supported model 5.5
+brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
 
 #Compare
-loo_compare(w_mod.5.6, w_mod.5.5)
+  ics <- loo(mod_12, brm_12_het, c("loo", "waic"), moment_match = TRUE)
+loo_het_table <- data.frame(loo_compare(ics))
 
 #Estimates
 w_mod.5.6$estimates
