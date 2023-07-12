@@ -161,6 +161,11 @@ waic_table_comp$id <- row.names(waic_table_comp)
   waic_table_comp_cold <- waic_table_comp_cold %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # loo
+  test <- function(x) {
+    print(x)
+    loo(x, moment_match = TRUE)
+  }
+  loo_table_cold <- lapply(models_cold, function(x) test(x))
         loo_table_cold <- lapply(models_cold, function(x) brms::loo(x, moment_match = TRUE))
    loo_table_comp_cold <- data.frame(loo_compare(loo_table_cold))
     loo_table_comp_cold$id <- row.names(loo_table_comp_cold)
