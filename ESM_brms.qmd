@@ -40,6 +40,9 @@ data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth.csv", st
 #Augmented
 data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
 
+# Dataset
+cold_DA <- read.csv("data/growth/processed/analysis/COLD_quangen_growth_DA.csv", stringsAsFactors = F)
+
 source("./R/Analysis/brms functions.R")
 load("./output/kfold/kfold.RData") # Reloads the kfold models for model selection
 
@@ -166,8 +169,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_cold = r2_table_cold,
-                  waic_cold = waic_table_comp_cold, 
-                   loo_cold = loo_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
+                  waic_cold = waic_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
 
 ########################
 ## Hot data
@@ -196,7 +198,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
    loo_table_comp_hot <- data.frame(loo_compare(loo_table_hot))
     loo_table_comp_hot$id <- row.names(loo_table_comp_hot)
     loo_table_comp_hot <- left_join(loo_table_comp_hot, Names_Models, by = c("id" = "Model Name"))
-    loo_table_comp_hot <- loo_table_comp_hot %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
+    loo_table_comp_hot <- loo_table_comp_hot %>% select("Name Detail", "looic", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_hot = r2_table_hot,
@@ -216,6 +218,18 @@ flextable(random_waic)  %>% align(align = "center", part = "all") %>% autofit()
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
     mod_12 <- readRDS("./output/rds/brm_12") #Homo. Top supported model 5.5
 brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
+
+# Lets have a look at model fit. 
+  # Histogram of residuals - assumed normal - pretty good to me
+  resid <-  mod_12$data$lnMass - predict(mod_12, summary = TRUE)[,"Estimate"]
+  
+  # We already know roughly from R2 that model does good job predciting observed response, but lets have a look. Little bit of over/underpredciting but nothing serious
+    plot(mod_12$data$lnMass ~ predict(mod_12, summary = TRUE)[,"Estimate"], ylab = "Observed lnMass", xlab = "Predicted lnMass", main = "Homogenous residual variance")
+    abline(0,1)
+
+# Could also check with DharMa but less sure the function is correct
+  #check_brms(mod_12)
+  #check_brms(brm_12_het)
 
 #Compare
   ics <- loo(mod_12, brm_12_het, c("loo", "waic"), moment_match = TRUE)
