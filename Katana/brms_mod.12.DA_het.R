@@ -36,3 +36,4 @@ brm_12_het <- brm(brm_12_het_mod,
                control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
 
 saveRDS(brm_12_het, "output/rds/brm_12_het")
+
