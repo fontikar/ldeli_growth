@@ -37,7 +37,7 @@ saveRDS(brm_12, "output/rds/brm_12")
 
 
 # We can also compare the above model to a Von Bertalanffy growth model
-growth_formula <- bf(lnMass ~ Linf * (1 - exp(-K * (z_days_since_hatch - t0))), 
+growth_formula <- bf( mass ~ Linf * (1 - exp(-K * (z_days_since_hatch - t0))), 
                       Linf + K + t0 ~ 1 + (1|gr(F1_Genotype, cov = G_VCV)) + (1|dam_id), nl = T)
 
 
@@ -54,7 +54,7 @@ brm_12_Von_Bert <- brm(growth_formula, family = gaussian(),
                data = data_DA, 
                data2 = list(G_VCV = G_VCV),
                prior = growth_prior, 
-               sample_prior = T, cores = 4, chains = 4, warmup = 1000, iter = 6000, thin = 10, 
+               sample_prior = T, cores = 4, chains = 4, warmup = 4000, iter = 10000, thin = 10, 
                control = list(adapt_delta = 0.98))
 
-save(growth_brms, file = "brms models/growth_brms.1.rda")
+saveRDS(brm_12_Von_Bert, file = "output/rds/brm_12_Von_Bert")
