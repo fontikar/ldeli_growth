@@ -153,6 +153,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
          r2_table_cold <- plyr::ldply(lapply(models_cold, function(x) bayes_R2(x)))
          r2_table_cold <- left_join(r2_table_cold, Names_Models, by = c(".id" = "Model Name"))
          r2_table_cold <- r2_table_cold %>% select("Name Detail", "Estimate", "Q2.5", "Q97.5")
+  
   # waic
        waic_table_cold <- lapply(models_cold, function(x) waic(x))
   waic_table_comp_cold <- data.frame(loo_compare(waic_table_cold))
