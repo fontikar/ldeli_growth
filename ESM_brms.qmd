@@ -96,7 +96,7 @@ flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit
 
 ## Model fitting and selection of random effects structure
 
-```{r, model_select, echo = FALSE, warning = FALSE, include = FALSE}
+```{r, model_select, eval = FALSE, echo = FALSE, warning = FALSE, include = FALSE}
 ########################
 ### Load data 
 ### with Detailed Model Names
@@ -155,23 +155,24 @@ waic_table_comp$id <- row.names(waic_table_comp)
          r2_table_cold <- r2_table_cold %>% select("Name Detail", "Estimate", "Q2.5", "Q97.5")
   
   # waic
-       waic_table_cold <- lapply(models_cold, function(x) waic(x))
-  waic_table_comp_cold <- data.frame(loo_compare(waic_table_cold))
+          waic_table_cold <- lapply(models_cold, function(x) waic(x))
+     waic_table_comp_cold <- data.frame(loo_compare(waic_table_cold))
   waic_table_comp_cold$id <- row.names(waic_table_comp_cold)
-  waic_table_comp_cold <- left_join(waic_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
-  waic_table_comp_cold <- waic_table_comp_cold %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
+     waic_table_comp_cold <- left_join(waic_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
+     waic_table_comp_cold <- waic_table_comp_cold %>% select("Name Detail", "waic", "elpd_diff", "se_diff")
 
   # loo
-   loo_table_cold <- lapply(models_cold, function(x) loo(x, moment_match = TRUE))
-   loo_table_comp_cold <- data.frame(loo_compare(loo_table_cold))
+            loo_table_cold <- lapply(models_cold, function(x) loo(x, moment_match = TRUE))
+       loo_table_comp_cold <- data.frame(loo_compare(loo_table_cold))
     loo_table_comp_cold$id <- row.names(loo_table_comp_cold)
-    loo_table_comp_cold <- left_join(loo_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
-    loo_table_comp_cold <- loo_table_comp_cold %>% select("Name Detail", "loo", "elpd_diff", "se_diff")
+       loo_table_comp_cold <- left_join(loo_table_comp_cold, Names_Models, by = c("id" = "Model Name"))
+       loo_table_comp_cold <- loo_table_comp_cold %>% select("Name Detail", "looic", "elpd_diff", "se_diff")
 
   # Lets write all these results to a table
   write_xlsx(list(  r2_cold = r2_table_cold,
                   waic_cold = waic_table_comp_cold, 
-                    loo_cold = loo_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
+                   loo_cold = loo_table_comp_cold), path = "./output/tables/cold/models_results_cold.xlsx")
+
 
 ########################
 ## Hot data
@@ -211,15 +212,24 @@ waic_table_comp$id <- row.names(waic_table_comp)
 ```{r, echo = FALSE}
 #| label: tbl-random_waic
 #| tbl-cap: Comparisons of wAIC values for seven models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance
-flextable(random_waic)  %>% align(align = "center", part = "all") %>% autofit()
+
+# Load in the tables
+  tableDA_waic <- read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "waic_all") %>% select(-...5)
+   tableDA_loo <- read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "loo_all") %>% select(-...5)
+
+# Combined DA Table
+  tableDA <- left_join(tableDA_waic, tableDA_loo, by = c("Name Detail" = "Name Detail"), suffix = c(".waic", ".loo"))
+
+# Print out Table
+  flextable(tableDA)  %>% align(align = "center", part = "all") %>% autofit()
 
 ```
 
 ## Does our data have heterogenous residual variance?
 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
-    mod_12 <- readRDS("./output/rds/brm_12") #Homo. Top supported model 5.5
-brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
+         mod_12 <- readRDS("./output/rds/brm_12") #Homo. Top supported model 5.5
+     brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
 
 # Lets have a look at model fit. 
   # Histogram of residuals - assumed normal - pretty good to me
