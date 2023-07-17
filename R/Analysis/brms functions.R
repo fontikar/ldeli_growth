@@ -1,31 +1,3 @@
-# Model checking function from https://frodriguezsanchez.net/post/using-dharma-to-check-bayesian-models-fitted-with-brms/
-
-check_brms <- function(model,             # brms model
-                       plot = TRUE,       # make plot?
-                       ...                # further arguments for DHARMa::plotResiduals 
-) {
-  
-  mdata <- brms::standata(model)
-  if (!"Y" %in% names(mdata))
-    stop("Cannot extract the required information from this brms model")
-  
-  dharma.obj <- DHARMa::createDHARMa(
-    simulatedResponse = t(brms::posterior_predict(model, ndraws = 1000)),
-    observedResponse = mdata$Y, 
-    fittedPredictedResponse = apply(
-      t(brms::posterior_epred(model, ndraws = 1000, re.form = NA)),
-      1,
-      mean))
-  
-  if (isTRUE(plot)) {
-    plot(dharma.obj, ...)
-  }
-  
-  invisible(dharma.obj)
-  
-}
-
-
 # x = 6
 # model = brm_5.4
 # group_var = "sigma"
@@ -179,8 +151,8 @@ brms_Vcomp <- function(model, x, group_var){
   if(group_var == "total"){
     ##Among ID variance
     #Strings to search for relevant (co)variance components
-    G_vars <- paste0("sd_liz_id")
-    G_cors <- paste0("cor_liz_id")
+    G_vars <- paste0("sd_F1_Genotype")
+    G_cors <- paste0("cor_F1_Genotype")
     
     #Extract the relevant sd/(co)variance components 
     SD_G <- posterior_samples(model, G_vars)
