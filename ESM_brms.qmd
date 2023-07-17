@@ -587,7 +587,6 @@ cold_brm_5.4 <- readRDS("./output/rds/cold_brm_5.4")
 #Obtain CV estimates over age for hot lizards
 hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
 hot_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
-hot_CV_PE <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "id")) %>% bind_rows()
 hot_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
 
 #Put these together
@@ -598,7 +597,6 @@ hot_CV$treatment <- "Hot"
 #Obtain CV estimates over age for cold lizards
 cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
 cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
-cold_CV_PE <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "id")) %>% bind_rows()
 cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
 
 #Put these together
