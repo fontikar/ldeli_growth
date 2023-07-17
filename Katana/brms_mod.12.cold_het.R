@@ -18,7 +18,7 @@ cold_DA %<>% mutate(treatment = as.factor(treatment),
 #G matrix
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
-priors <- c(prior(normal(0, 10), "Intercept"),
+priors <- c(prior(normal(0, 5), "Intercept"),
             prior(student_t(3, 0, 10), class = "sd"))
 
 #The model
