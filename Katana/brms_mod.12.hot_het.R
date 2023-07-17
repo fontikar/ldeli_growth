@@ -33,6 +33,6 @@ brm_12_hot_het <- brm(mods_hot,
                data2 = list(G_VCV = G_VCV),
                data = hot_DA, 
                chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
-               control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
+               control = list(adapt_delta = 0.98, max_treedepth=12), save_pars = save_pars(all = TRUE))
 
 saveRDS(brm_12_hot_het, "output/rds/brm_12_hot_het")
