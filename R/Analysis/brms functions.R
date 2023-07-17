@@ -132,13 +132,14 @@ brms_Vcomp <- function(model, x, group_var){
   }
   
   if(group_var == "sigma"){
-    SD <- posterior_samples(model, group_var) # Extract the variance of intercept, linear slope
+    # To get sigma when using a het model we need to extract the fixed effects because we are modelling log(SD)
+      SD <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope
     
-    # Now, add everything together
-    SD_comp <- SD[1] + ((x)*SD[2]) #The SD of the intercept and linear and quadratic slope
+    # Now, compute age-specific SD. Remember that we are modelling log(SD), so we need to exp() at the end to get to the real SD. ## SHIN CHECK.
+      SD_comp <- exp(SD[,"b_sigma_Intercept"] + ((x)*SD[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear slope. Remmebr for het models they are modelled as log(SD)
     
     #Squaring SD to get the variance
-    Var_comp <- (SD_comp)^2 
+      Var_comp <- (SD_comp)^2 
     
     df <- data.frame(z_day = x,
                      day = backztran_DSH(x),
@@ -192,10 +193,12 @@ brms_Vcomp <- function(model, x, group_var){
       2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
 
        #Residuals
-    SD_e <- posterior_samples(model, "sigma") # Extract the variance of intercept, linear slope
+
+       # To get sigma when using a het model we need to extract the fixed effects because we are modelling log(SD)
+      SD_e <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope
     
-    # Now, add everything together
-    SD_comp_e <- SD_e[1] + ((x)*SD_e[2]) #The SD of the intercept and linear and quadratic slope
+    # Now, compute age-specific SD. Remember that we are modelling log(SD), so we need to exp() at the end to get to the real SD. ## SHIN CHECK.
+    SD_comp_e <- exp(SD_e[,"b_sigma_Intercept"] + ((x)*SD_e[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
     
     #Squaring SD to get the variance
     Vresid <- (SD_comp_e)^2 
