@@ -227,7 +227,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
 
 ## Does our data have heterogenous residual variance?
 
-```{r, echo = FALSE, warning = FALSE, include = FALSE}
+```{r, eval = FALSE, echo = FALSE, warning = FALSE, include = FALSE}
          mod_12 <- readRDS("./output/rds/brm_12") #Homo. Top supported model 5.5
      brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
 
@@ -235,7 +235,7 @@ waic_table_comp$id <- row.names(waic_table_comp)
   # Histogram of residuals - assumed normal - pretty good to me
    resid <-  mod_12$data$lnMass - predict(mod_12, summary = TRUE)[,"Estimate"]
   resid2 <-  brm_12_het$data$lnMass - predict(brm_12_het, summary = TRUE)[,"Estimate"]
-   
+  
   # Look at the residuals - should be normally distributed
     par(mfrow = c(2,2))
     hist(resid, main = "Homogenous residual variance", xlab = "Residuals")
@@ -249,38 +249,31 @@ waic_table_comp$id <- row.names(waic_table_comp)
     abline(0,1, col = "red")
 
 #Compare
-  ics <- loo(mod_12, brm_12_het, c("loo", "waic"), moment_match = TRUE)
-loo_het_table <- data.frame(loo_compare(ics))
+          ics <- loo(mod_12,  "loo", moment_match = TRUE)
+          ic2 <- loo(brm_12_het,  "loo", moment_match = TRUE)
+loo_het_table <- data.frame(loo_compare(ics, ic2))
+loo_het_table$id <- c("Heterogeneous", "Homogeneous")
 
-#Estimates
-w_mod.5.6$estimates
-w_mod.5.5$estimates[3,1]
+       icswaic <- waic(mod_12)
+       ic2waic <- waic(brm_12_het)
+waic_het_table <- data.frame(loo_compare(icswaic, ic2waic))
+waic_het_table$id <- c("Heterogeneous", "Homogeneous")
 
-#Summary of best supported model
-summary(brm_5.5) 
+ write_xlsx(list(  waic_het_table = waic_het_table,
+                    loo_het_table = loo_het_table), path = "./output/tables/models_results_het.xlsx")
 
-#Summarising the LOO and wAIC of brm models
-#Create a table
-brms_IC <- as.data.frame(matrix(ncol =4, nrow = 2))
-colnames(brms_IC) <- c("Model", "WAIC", "ELPD diff", "SE diff")
-brms_IC$Model <- c("Heterogenous variance", "Homogenous variance")
-
-#Fill in the table
-#Heterogenous
-brms_IC[1,2] <- w_mod.5.5$estimates[3,1]
-brms_IC[1,3] <- loo_compare(w_mod.5.5, w_mod.5.6)[[1]]
-brms_IC[1,4] <- loo_compare(w_mod.5.5, w_mod.5.6)[[3]]
-
-#Homogenous
-brms_IC[2,2] <- w_mod.5.6$estimates[3,1]
-brms_IC[2,3] <- loo_compare(w_mod.5.5, w_mod.5.6)[[2]]
-brms_IC[2,4] <- loo_compare(w_mod.5.5, w_mod.5.6)[[4]]
 ```
 
 ```{r, echo = FALSE}
 #| label: tbl-brms_IC
 #| tbl-cap: Comparisons of expected log predictive density values for LOO and WAIC values to test the importance of  heterogenous and homogenous residual variance. Note that difference in values are calculated by substracting values from the model with lowest LOO and WAIC values i.e. the heterogenous variance model
-flextable(brms_IC)  %>% align(align = "center", part = "all") %>% autofit()
+  table_het <- read_xlsx("./output/tables/models_results_het.xlsx", sheet = "waic_het_table")
+ table_het2 <- read_xlsx("./output/tables/models_results_het.xlsx", sheet = "loo_het_table")
+
+# Combined DA Table
+  tableDA_het <- left_join(table_het, table_het2, by = c("id" = "id"), suffix = c(".waic", ".loo"))  %>% select(id, waic, elpd_diff.waic, se_diff.waic, looic, elpd_diff.loo, se_diff.loo)
+
+flextable(tableDA_het)  %>% align(align = "center", part = "all") %>% autofit()
 ```
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
@@ -288,22 +281,20 @@ flextable(brms_IC)  %>% align(align = "center", part = "all") %>% autofit()
 ```{r, echo = FALSE, include = FALSE}
 #Estimates of G, M, PE and h2 marginalised over age
 #Read in intercept models
-cold_brm_4.5 <- readRDS("./output/rds/cold_brm_4.5")
-hot_brm_4.5 <- readRDS("./output/rds/hot_brm_4.5")
+cold_brm_4.5 <- readRDS("./output/rds/brm_10_cold")
+hot_brm_4.5 <- readRDS("./output/rds/brm_10_hot")
 
 #Extract VCV
 cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
 hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
 
 #Calculate total phenotypic variance for each treatment
-Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_id__Intercept"] +
+Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"] +
   hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  hot_brm_4.5_post[,"sd_liz_id__Intercept"] + 
   hot_brm_4.5_post[,"sigma"]
 
-cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_id__Intercept"] +
+cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"] +
   cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  cold_brm_4.5_post[,"sd_liz_id__Intercept"] + 
   cold_brm_4.5_post[,"sigma"]
 
 #Convert to variance
@@ -311,24 +302,22 @@ Hot_Pheno_intercept_V <- (Hot_Pheno_intercept)^2
 cold_Pheno_intercept_V <- (cold_Pheno_intercept)^2
 
 #Create a table
-hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 10))
+hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 8))
 colnames(hot_cold_Vcomps) <- c("Treatment", "Variable", "Estimate", "Lower", "Upper")
 
-hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =5)
-hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal", "V_pe", "Vresidual", "h2"), 2)
+hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =4)
+hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal", "Vresidual", "h2"), 2)
 
 #Fill in table
-hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
 hot_cold_Vcomps[2,3:5] <- ((hot_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[4,3:5] <- ((hot_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[5,3:5] <- ((hot_brm_4.5_post[,"sd_id__Intercept"]^2 / Hot_Pheno_intercept_V) %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[4,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept_V) %>% posterior_summary())[-2] %>% round(3)
 
-hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_liz_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[9,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[10,3:5] <- ((cold_brm_4.5_post[,"sd_id__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[5,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
 ```
 
 ```{r, echo = FALSE}
@@ -341,17 +330,16 @@ flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofi
 ```{r, echo = FALSE}
 #Estimates of variance components G M E over age
 #Read in model output
-cold_brm_5.5 <- readRDS("./output/rds/cold_brm_5.5") 
-hot_brm_5.5 <- readRDS("./output/rds/hot_brm_5.5")
+cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") 
+ hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het")
 
 #Define the days to calculate estimates
 z_days <- ztran_DsH(seq(0, 500, 30))
 
 #Get estimates across age for hot treatment
-brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "liz_id")) %>% bind_rows()
+brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "F1_Genotype")) %>% bind_rows()
 brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "dam_id")) %>% bind_rows()
 brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "sigma")) %>% bind_rows()
-brms_hot_Vpe <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "id")) %>% bind_rows()
 
 
 #Compile all variance estimates together
@@ -360,21 +348,19 @@ brms_hot <- bind_rows(brms_hot_Vg,
                       brms_hot_Ve)
 
 #Add in treatment info
-brms_hot$treatment <- "hot"
+brms_hot$Treatment <- "Hot"
 
 #Obtain estimates for cold treatment
-brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "liz_id")) %>% bind_rows()
+brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "F1_Genotype")) %>% bind_rows()
 brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "dam_id")) %>% bind_rows()
 brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "sigma")) %>% bind_rows()
-brms_cold_Vpe <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "id")) %>% bind_rows()
 
 #Compile all variance estimates together
 brms_cold <- bind_rows(brms_cold_Vg,
                        brms_cold_Vm,
                        brms_cold_Ve)
-
-#Add in treatment info
-brms_cold$treatment <- "cold"
+# Add in treatment info                       
+brms_cold$Treatment <- "Cold"              
 
 #Put both datasets together
 brms_compare <- bind_rows(brms_hot, brms_cold)
@@ -385,8 +371,8 @@ group_var_labs_3 <- c("G  ", "M  ", "Residual")
 names(group_var_labs_3) <- unique(brms_compare$group_id)
 
 #Change order of labels
-brms_compare$group_id<- factor(brms_compare$group_id , levels = c("liz_id", "dam_id", "sigma"))
-brms_compare$treatment<- factor(brms_compare$treatment , levels = c("cold", "hot"), labels = c("Cold", "Hot"))
+brms_compare$group_id<- factor(brms_compare$group_id , levels = c("F1_Genotype", "dam_id", "sigma"))
+brms_compare$treatment<- factor(brms_compare$Treatment , levels = c("Cold", "Hot"), labels = c("Cold", "Hot"))
 ```
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
@@ -415,14 +401,13 @@ ggplot(data = brms_compare, aes(x = day, y = Estimate, colour = factor(treatment
 
 ```{r, echo = FALSE, include= FALSE}
 #Compiling G matrix for hot incubated lizards
-
 #Calculate VAR from SD
-hot_G_sd_post <- posterior_samples(hot_brm_5.5, "^sd_liz_id")
-hot_G_var_post <- posterior_samples(hot_brm_5.5, "^sd_liz_id")^2
+    hot_G_sd_post <- posterior_samples(hot_brm_5.5, "^sd_F1_Genotype")
+   hot_G_var_post <- posterior_samples(hot_brm_5.5, "^sd_F1_Genotype")^2
 hot_G_var_summary <- posterior_summary(hot_G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-hot_G_cor_post <- posterior_samples(hot_brm_5.5, "^cor_liz_id")
+   hot_G_cor_post <- posterior_samples(hot_brm_5.5, "^cor_F1_Genotype")
 hot_G_cor_summary <- posterior_summary(hot_G_cor_post)[,-2] %>% signif(digits = 3)
 
 hot_G_cov_post <- cbind(hot_G_cor_post[1] * (hot_G_sd_post[1] * hot_G_sd_post[2]), 
@@ -494,12 +479,9 @@ Table_4_M[3, 2] <- paste0(hot_M_cor_summary[3,1], " (", hot_M_cor_summary[3,2], 
 
 #write.csv(Table_4_M, "output/tabs/Table_4_M_brms_hot.csv")
 
-#PE
-posterior_samples(hot_brm_5.5, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
-
 #Residuals
-posterior_samples(hot_brm_5.5, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
-posterior_summary(hot_brm_5.5, "b_sigma_z") %>% signif(digits = 3)
+exp(posterior_samples(hot_brm_5.5, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
+exp(posterior_samples(hot_brm_5.5, "b_sigma_z"))^2 %>% posterior_summary() %>% signif(digits = 3)
 
 ```
 
@@ -507,12 +489,12 @@ posterior_summary(hot_brm_5.5, "b_sigma_z") %>% signif(digits = 3)
 #Compiling G matrix for cold incubated lizards
 
 #Calculate VAR from SD
-cold_G_sd_post <- posterior_samples(cold_brm_5.5, "^sd_liz_id")
-cold_G_var_post <- posterior_samples(cold_brm_5.5, "^sd_liz_id")^2
+    cold_G_sd_post <- posterior_samples(cold_brm_5.5, "^sd_F1_Genotype")
+   cold_G_var_post <- posterior_samples(cold_brm_5.5, "^sd_F1_Genotype")^2
 cold_G_var_summary <- posterior_summary(cold_G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-cold_G_cor_post <- posterior_samples(cold_brm_5.5, "^cor_liz_id")
+   cold_G_cor_post <- posterior_samples(cold_brm_5.5, "^cor_F1_Genotype")
 cold_G_cor_summary <- posterior_summary(cold_G_cor_post)[,-2] %>% signif(digits = 3)
 
 cold_G_cov_post <- cbind(cold_G_cor_post[1] * (cold_G_sd_post[1] * cold_G_sd_post[2]), 
@@ -584,12 +566,9 @@ Table_5_M[3, 2] <- paste0(cold_M_cor_summary[3,1], " (", cold_M_cor_summary[3,2]
 
 #write.csv(Table_5_M, "output/tabs/Table_5_M_brms_cold.csv")
 
-#PE
-posterior_samples(cold_brm_5.5, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
-
 #Residuals
-posterior_samples(cold_brm_5.5, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
-posterior_summary(cold_brm_5.5, "b_sigma_z") %>% signif(digits = 3)
+exp(posterior_samples(cold_brm_5.5, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
+exp(posterior_samples(cold_brm_5.5, "b_sigma_z"))^2 %>% posterior_summary() %>% signif(digits = 3)
 ```
 
 ## Accounting for scale-effects using coefficients of variation
