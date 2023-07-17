@@ -82,7 +82,7 @@ backztran_DSH <- function(z_day_since_hatch){
 #Functions to calculate variance components and h2 and m2 form brms models over x e.g Age
 brms_Vcomp <- function(model, x, group_var){
   
-  if(group_var == "liz_id"){
+  if(group_var == "F1_Genotype"){
     #Strings to search for relevant (co)variance components
     G_vars <- paste0("sd_",group_var)
     G_cors <- paste0("cor_",group_var)
@@ -219,17 +219,7 @@ brms_Vcomp <- function(model, x, group_var){
       2*(x^2)*COV_M[2] + # Covariance of intercept and quadratic slope
       2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
 
-    #Permanent Environment variance
-    #Strings to search for relevant (co)variance components
-    PE_vars <- paste0("sd_id")
-    
-    #Extract the relevant sd/(co)variance components 
-    SD_PE <- posterior_samples(model, PE_vars)
-    
-    #Squaring SD to get the variance
-    Vpe <- (SD_PE)^2 
-    
-    #Residuals
+       #Residuals
     SD_e <- posterior_samples(model, "sigma") # Extract the variance of intercept, linear slope
     
     # Now, add everything together
@@ -239,7 +229,7 @@ brms_Vcomp <- function(model, x, group_var){
     Vresid <- (SD_comp_e)^2 
     
     #Calculate total phenotypic variance
-    VtotalP <- Vg + Vm + Vpe + Vresid
+    VtotalP <- Vg + Vm +  Vresid
     
     df <- data.frame(z_day = x,
                      day = backztran_DSH(x),
