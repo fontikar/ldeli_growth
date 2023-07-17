@@ -396,21 +396,23 @@ get_CV_brms <- function(x, model, group_var){
   
   #Convert regular day to Z days 
   z <- ztran_DsH(x)
+  
   #Make predictions for mean mass at a given age
   pred <- model_post[, "b_Intercept"] + #Intercept
     model_post[, "b_z_days_since_hatch"] *  z + #Linear day effect 
     model_post[, "b_z_days_since_hatch_I2"] * (z^2) #Curve day effect 
   
   #Get variance at a given age
-  if(group_var == "liz_id"){
+  if(group_var == "F1_Genotype"){
     #Strings to search for relevant (co)variance components
     G_vars <- paste0("sd_",group_var)
     G_cors <- paste0("cor_",group_var)
     
     #Extract the relevant sd/(co)variance components 
-    SD <- posterior_samples(model, G_vars)
-    COR <- posterior_samples(model, G_cors) 
-    V <- posterior_samples(model, G_vars)^2
+      SD <- posterior_samples(model, G_vars)
+     COR <- posterior_samples(model, G_cors) 
+       V <- posterior_samples(model, G_vars)^2
+    
     #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
     COV <- cbind(COR[1] * (SD[1] * SD[2]), 
                  COR[2] * (SD[1] * SD[3]),
@@ -426,12 +428,12 @@ get_CV_brms <- function(x, model, group_var){
     CV_g <- (100 * (V_g^0.5)) / exp(pred)
     
     #Arrange predictions neatly
-    df <- data.frame(z_day = z,
-                     day = x,
+    df <- data.frame(   z_day = z,
+                          day = x,
                      group_id = group_var,
                      Estimate = posterior_summary(CV_g)[1],
-                     Lower =  posterior_summary(CV_g)[3],
-                     Upper =  posterior_summary(CV_g)[4])
+                        Lower =  posterior_summary(CV_g)[3],
+                        Upper =  posterior_summary(CV_g)[4])
   }
   
   if(group_var == "dam_id"){
@@ -440,9 +442,9 @@ get_CV_brms <- function(x, model, group_var){
     M_cors <- paste0("cor_",group_var)
     
     #Extract the relevant sd/(co)variance components 
-    SD <- posterior_samples(model, M_vars)
-    COR <- posterior_samples(model, M_cors)
-    V <- posterior_samples(model, M_vars)^2
+      SD <- posterior_samples(model, M_vars)
+     COR <- posterior_samples(model, M_cors)
+       V <- posterior_samples(model, M_vars)^2
     
     #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
     COV <- cbind(COR[1] * (SD[1] * SD[2]), 
@@ -459,12 +461,12 @@ get_CV_brms <- function(x, model, group_var){
     CV_m <- (100 * (V_m^0.5)) / exp(pred)
     
     #Arrange predictions neatly
-    df <- data.frame(z_day = z,
-                     day = x,
+    df <- data.frame(   z_day = z,
+                          day = x,
                      group_id = group_var,
                      Estimate = posterior_summary(CV_m)[1],
-                     Lower =  posterior_summary(CV_m)[3],
-                     Upper =  posterior_summary(CV_m)[4])
+                        Lower =  posterior_summary(CV_m)[3],
+                        Upper =  posterior_summary(CV_m)[4])
   }
   
   if(group_var == "id"){
@@ -483,10 +485,11 @@ get_CV_brms <- function(x, model, group_var){
   }
   
   if(group_var == "sigma"){
-    SD <- posterior_samples(model, group_var) # Extract the variance of intercept, linear slope
+    
+    SD <- posterior_samples(model, pars = "b") # Extract the variance of intercept, linear slope
     
     # Now, add everything together
-    SD_comp <- SD[1] + ((x)*SD[2]) #The SD of the intercept and linear and quadratic slope
+    SD_comp <- exp(SD[,"b_sigma_Intercept"] + ((x)*SD[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
     
     #Squaring SD to get the variance
     Vs <- (SD_comp)^2 
@@ -545,37 +548,27 @@ get_CV_brms <- function(x, model, group_var){
       2*(x^2)*COV_M[2] + # Covariance of intercept and quadratic slope
       2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
     
-    #Permanent Environment variance
-    #Strings to search for relevant (co)variance components
-    PE_vars <- paste0("sd_id")
-    
-    #Extract the relevant sd/(co)variance components 
-    SD_PE <- posterior_samples(model, PE_vars)
-    
-    #Squaring SD to get the variance
-    Vpe <- (SD_PE)^2 
-    
     #Residuals
-    SD_e <- posterior_samples(model, "sigma") # Extract the variance of intercept, linear slope
+    SD_e <- posterior_samples(model, pars = "b") # Extract the variance of intercept, linear slope
     
     # Now, add everything together
-    SD_comp_e <- SD_e[1] + ((x)*SD_e[2]) #The SD of the intercept and linear and quadratic slope
+    SD_comp_e <- exp(SD[,"b_sigma_Intercept"] + ((x)*SD[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
     
     #Squaring SD to get the variance
     Vresid <- (SD_comp_e)^2 
     
     #Calculate total phenotypic variance
-    VtotalP <- Vg + Vm + Vpe + Vresid
+    VtotalP <- Vg + Vm + Vresid
     
     CVtot <- (100 * (VtotalP^0.5)) / exp(pred)
     
     #Arrange predictions neatly
-    df <- data.frame(z_day = z,
-                     day = x,
+    df <- data.frame(   z_day = z,
+                          day = x,
                      group_id = group_var,
                      Estimate = posterior_summary(CVtot)[1],
-                     Lower =  posterior_summary(CVtot)[3],
-                     Upper =  posterior_summary(CVtot)[4])
+                        Lower =  posterior_summary(CVtot)[3],
+                        Upper =  posterior_summary(CVtot)[4])
     
   }
   return(df)
