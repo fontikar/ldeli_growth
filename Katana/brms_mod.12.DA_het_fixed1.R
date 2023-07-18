@@ -18,7 +18,7 @@ data_DA %<>% mutate(treatment = as.factor(treatment),
 G_VCV <- read.csv("output/G/Ga_SNPready.csv", row.names = 1) %>% as.matrix()
 
 # Set some prirors
-priors <- c(prior(normal(0, 10), "Intercept"),
+priors <- c(prior(normal(0, 5), "Intercept"),
             prior(normal(0, 10), "b"),
             prior(student_t(3, 0, 10), class = "sd"))
 
@@ -35,7 +35,7 @@ brm_12_het_fixed1 <- brm(brm_12_het_mod,
                data2 = list(G_VCV = G_VCV),
                data = data_DA, 
                chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
-               control = list(adapt_delta = 0.98), save_pars = save_pars(all = TRUE))
+               control = list(adapt_delta = 0.98, max_treedepth=12), save_pars = save_pars(all = TRUE))
 
 saveRDS(brm_12_het_fixed1, "output/rds/brm_12_het_fixed1")
 
