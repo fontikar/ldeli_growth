@@ -232,22 +232,10 @@ waic_table_comp$id <- row.names(waic_table_comp)
      brm_12_het <- readRDS("./output/rds/brm_12_het") #Hetero 5.6
 
 # Lets have a look at model fit. 
-  # Histogram of residuals - assumed normal - pretty good to me
-   resid <-  mod_12$data$lnMass - predict(mod_12, summary = TRUE)[,"Estimate"]
-  resid2 <-  brm_12_het$data$lnMass - predict(brm_12_het, summary = TRUE)[,"Estimate"]
-  
-  # Look at the residuals - should be normally distributed
-    par(mfrow = c(2,2))
-    hist(resid, main = "Homogenous residual variance", xlab = "Residuals")
-    hist(resid2, main = "Heterogeneous residual variance", xlab = "Residuals")
-  
-  # We already know roughly from R2 that model does good job predciting observed response, but lets have a look. Little bit of over/underpredciting but nothing serious
-    
-    plot(mod_12$data$lnMass ~ predict(mod_12, summary = TRUE)[,"Estimate"], ylab = "Observed lnMass", xlab = "Predicted lnMass", main = "Homogenous residual variance")
-    abline(0,1, col = "red")
-    plot(brm_12_het$data$lnMass ~ predict(brm_12_het, summary = TRUE)[,"Estimate"], ylab = "Observed lnMass", xlab = "Predicted lnMass", main = "Heterogeneous residual variance")
-    abline(0,1, col = "red")
-
+par(mfrow = c(2,2))
+brms_model_check(mod_12, main = "Homogenous residual variance")
+brms_model_check(brm_12_het, main = "Heterogeneous residual variance")
+ 
 #Compare
           ics <- loo(mod_12,  "loo", moment_match = TRUE)
           ic2 <- loo(brm_12_het,  "loo", moment_match = TRUE)
