@@ -62,7 +62,7 @@ my_theme <- theme(#legend.position = "none",
 
 ```{r}
 # pedigree_stats
-  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(liz_id))) %>% as.data.frame()
+  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(F1_Genotype))) %>% as.data.frame()
 
 # Number of maternal half sibs
   pedigree_stats_mat <- data %>% group_by(treatment, dam_id)  %>% summarise(n_sire = length(unique(sire_id))) %>% as.data.frame()
@@ -581,26 +581,28 @@ where $CV_x$ is the CV for a given variance component e.g. $CV_M$ is the CV of m
 ```{r, echo = FALSE, include= FALSE}
 #CV calculations of G M Sigma
 #Read in model output
-hot_brm_5.4 <- readRDS("./output/rds/hot_brm_5.4")
-cold_brm_5.4 <- readRDS("./output/rds/cold_brm_5.4")
+hot_brm_5.4 <- readRDS("./output/rds/brm_12_hot_het_fixed1") 
+cold_brm_5.4 <- readRDS("./output/rds/brm_12_cold_het_fixed1") 
 
 #Obtain CV estimates over age for hot lizards
-hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
+hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "F1_Genotype")) %>% bind_rows()
 hot_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
 hot_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
 
 #Put these together
 hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
+
 #Add treatment info
 hot_CV$treatment <- "Hot"
 
 #Obtain CV estimates over age for cold lizards
-cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "liz_id")) %>% bind_rows()
+cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "F1_Genotype")) %>% bind_rows()
 cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
 cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
 
 #Put these together
 cold_CV <- bind_rows(cold_CV_G, cold_CV_M, cold_CV_E)
+
 #Add treatment info
 cold_CV$treatment <- "Cold"
 
@@ -681,7 +683,7 @@ To test for treatment differences in growth trajectories, we fitted four models 
 ```{r, echo = FALSE, include = FALSE}
 #Compiling fixed effects coefficients for overall model testing for differences in growth curves
 #Read in model output
-brm_5.het <- readRDS("./output/rds/brm_5.het")
+brm_5.het <- readRDS("./output/rds/old_models/brm_5.het")
 
 #Extract entire posterior
 brm_5.het_post <- posterior_samples(brm_5.het)
@@ -720,12 +722,12 @@ pander(Table_5,
 colnames(brm_5.het_post)[1:21]
 
 #Calculate VAR from SD
-G_sd_post <- posterior_samples(brm_5.het, "^sd_liz_id")
-G_var_post <- posterior_samples(brm_5.het, "^sd_liz_id")^2
+G_sd_post <- posterior_samples(brm_5.het, "^sd_F1_Genotype")
+G_var_post <- posterior_samples(brm_5.het, "^sd_F1_Genotype")^2
 G_var_summary <- posterior_summary(G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-G_cor_post <- posterior_samples(brm_5.het, "^cor_liz_id")
+G_cor_post <- posterior_samples(brm_5.het, "^cor_F1_Genotype")
 G_cor_post
 G_cor_summary <- posterior_summary(G_cor_post)[,-2] %>% signif(digits = 3)
 
