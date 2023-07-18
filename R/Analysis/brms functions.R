@@ -1,3 +1,15 @@
+  brms_model_check <- function(model, main = "Homogenous residual variance", xlab = "Residuals"){
+  
+  # Histogram of residuals - assumed normal - pretty good to me
+      resid <-  model$data$lnMass - predict(model, summary = TRUE)[,"Estimate"]
+ 
+  # Look at the residuals - should be normally distributed
+     hist(resid, main = main, xlab = xlab)
+  
+  # We already know roughly from R2 that model does good job predciting observed response, but lets have a look. Little bit of over/underpredciting but nothing serious
+      plot(model$data$lnMass ~ predict(model, summary = TRUE)[,"Estimate"], ylab = "Observed lnMass", xlab = "Predicted lnMass", main = main)
+      abline(0,1, col = "red")
+}
 
 #Function to get model prediction from brms_5.het
 func_growth_predictions <- function(day, predat, posterior){
