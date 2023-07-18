@@ -257,10 +257,10 @@ plot_layout(brms_top_2 / brms_bottom_2)
 ```{r, echo = FALSE, include = FALSE}
 #Compare WAIC of fixed effect models
 #Read in fixed effect models
-    brm_5.het <- readRDS("./output/rds/brms_mod.12.DA_het_fixed1") #old_models/brm_5.het
-  brm_5.1.het <- readRDS("./output/rds/brms_mod.12.DA_het_fixed2") #old_models/brm_5.1.het
-brm_5.1.5.het <- readRDS("./output/rds/brms_mod.12.DA_het_fixed3") #old_models/brm_5.1.5.het
-  brm_5.2.het <- readRDS("./output/rds/brms_mod.12.DA_het_fixed4") #old_models/brm_5.2.het
+    brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
+  brm_5.1.het <- readRDS("./output/rds/brm_12_het_fixed2") #old_models/brm_5.1.het
+brm_5.1.5.het <- readRDS("./output/rds/brm_12_het_fixed3") #old_models/brm_5.1.5.het
+  brm_5.2.het <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
 
 #Add the WAIC
     waic_5.het <- waic(brm_5.het)
@@ -268,8 +268,14 @@ brm_5.1.5.het <- readRDS("./output/rds/brms_mod.12.DA_het_fixed3") #old_models/b
 waic_5.1.5.het <- waic(brm_5.1.5.het)
   waic_5.2.het <- waic(brm_5.2.het)
 
+# LOO
+    loo_5.het <- loo(brm_5.het, "loo", moment_match = TRUE)
+  loo_5.1.het <- loo(brm_5.1.het, "loo", moment_match = TRUE)
+loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
+  loo_5.2.het <- loo(brm_5.2.het, "loo", moment_match = TRUE)
+
 #Compare
-loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)
+tab_fixed <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)
 
 #Tabulating
 fixed_waic <- data.frame(matrix(nrow = 4, ncol = 4))
