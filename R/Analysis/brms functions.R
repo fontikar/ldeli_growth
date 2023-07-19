@@ -14,17 +14,17 @@
 #Function to get model prediction from brms_5.het
 func_growth_predictions <- function(day, predat, posterior){
   
-  func <- function(liz_id = predat$liz_id[i]){
+  func <- function(liz_id = predat$F1_Genotype[i]){
     # finding dam_id that corresponds to liz_id
-    dam_id <- predat$dam_id[predat$liz_id == liz_id]
-    treat <- predat$treatment[predat$liz_id == liz_id]
+    dam_id <- predat$dam_id[predat$F1_Genotype == liz_id]
+    treat <- predat$treatment[predat$F1_Genotype == liz_id]
     
     pred <- posterior[, "b_Intercept"] + #Intercept
       posterior[, "b_z_days_since_hatch"] * ztran_DsH(day) + #Linear day effect 
       posterior[, "b_z_days_since_hatch_I2"] * ((ztran_DsH(day))^2) + #Curve day effect 
-      posterior[, paste0("r_liz_id[",liz_id, ",Intercept]")] + #Lizard intercept
-      posterior[, paste0("r_liz_id[",liz_id, ",z_days_since_hatch]")] + #Lizard slope
-      posterior[, paste0("r_liz_id[",liz_id, ",z_days_since_hatch_I2]")] + #Lizard curve z_days_since_hatch_I2
+      posterior[, paste0("r_F1_Genotype[",liz_id, ",Intercept]")] + #Lizard intercept
+      posterior[, paste0("r_F1_Genotype[",liz_id, ",z_days_since_hatch]")] + #Lizard slope
+      posterior[, paste0("r_F1_Genotype[",liz_id, ",z_days_since_hatch_I2]")] + #Lizard curve z_days_since_hatch_I2
       posterior[, paste0("r_dam_id[",dam_id, ",Intercept]")] + #Dam intercept
       posterior[, paste0("r_dam_id[",dam_id, ",z_days_since_hatch]")] + #Dam slope
       posterior[, paste0("r_dam_id[",dam_id, ",z_days_since_hatch_I2]")]  #Dam curve
@@ -47,7 +47,7 @@ func_growth_predictions <- function(day, predat, posterior){
                      upper = original_scale_pred[,4])
     return(df)
   } #Extract posterior mean and upper and lower
-  df <- bind_rows(lapply(predat$liz_id, function(x) func(x))) %>% mutate(day = day)
+  df <- bind_rows(lapply(predat$F1_Genotype, function(x) func(x))) %>% mutate(day = day)
   return(df)
 }
 
