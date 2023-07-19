@@ -16,7 +16,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx)
 
 #Read in dataset
 #Complete
@@ -275,42 +275,24 @@ loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
   loo_5.2.het <- loo(brm_5.2.het, "loo", moment_match = TRUE)
 
 #Compare
-tab_fixed <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)
+  tab_fixed_waic <- data.frame(loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)) %>% select(waic, elpd_diff, se_diff) %>% mutate(id= row.names(.))
+  tab_fixed_loo <- data.frame(loo_compare(loo_5.het, loo_5.1.het, loo_5.1.5.het, loo_5.2.het)) %>% select(looic, elpd_diff, se_diff)  %>% mutate(id= row.names(.))
 
-#Tabulating
-fixed_waic <- data.frame(matrix(nrow = 4, ncol = 4))
-colnames(fixed_waic) <- c("Fixed Effects Formula", "wAIC", "elpd_diff", "se_diff")
+# Merge IC dataframes
+  tab_fixed <- left_join(tab_fixed_waic, tab_fixed_loo, by = "id", suffix = c("_waic", "_loo"))  %>% relocate(id, .before = waic) 
+  model_struc_name <- c("Treatment + Age + Age^2 + Treatment \\cdot Age + Treatment \\cdot Age^2", "Treatment + Age + Age^2+ Treatment \\cdot Age^2", "Treatment + Age + Age^2", "Treatment + Age + Age^2 + Treatment \\cdot Age")
+  tab_fixed <- tab_fixed %>% mutate(model = model_struc_name) %>% relocate(model, .after = id)
 
-fixed_waic[1,1] <- c("Treatment + Age + Age^2 + Treatment*Age + Treatment*Age^2") 
-fixed_waic[2,1] <- c("Treatment + Age + Age^2 + Treatment*Age")
-fixed_waic[3,1] <- c("Treatment + Age + Age^2+ Treatment*Age^2")
-fixed_waic[4,1] <- c("Treatment + Age + Age^2") 
-
-#waic estimates
-#wAIC values
-fixed_waic[1,2] <- waic_5.het$estimates[3,1]
-fixed_waic[2,2] <- waic_5.1.het$estimates[3,1]
-fixed_waic[3,2] <- waic_5.1.5.het$estimates[3,1]
-fixed_waic[4,2] <- waic_5.2.het$estimates[3,1]
-
-#Expected log predictive density diff
-fixed_waic[1,3] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[1,1] %>% round(3)
-fixed_waic[2,3] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[2,1] %>% round(3)
-fixed_waic[3,3] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[3,1] %>% round(3)
-fixed_waic[4,3] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[4,1] %>% round(3)
-
-#SE diff
-fixed_waic[1,4] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[1,2] %>% round(3)
-fixed_waic[2,4] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[2,2] %>% round(3)
-fixed_waic[3,4] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[3,2] %>% round(3)
-fixed_waic[4,4] <- loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)[4,2] %>% round(3)
+# write file to save time
+  write_xlsx(tab_fixed, "./output/tables/brms_fixed.xlsx")
 ```
 
 ```{r, echo = FALSE}
-pander(fixed_waic,
-       justify = "lccc",
-       #split.cell = 80,
-       caption = "Table X Comparison of WAIC values of three models with different combinations of interactions with incubation treatment and  growth curve parameters")
+
+#Table 2
+tab2 <- data.frame(read_xlsx("./output/tables/brms_fixed.xlsx") %>% select(-id))
+
+flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5)  %>% flextable::compose(j = 1, value = flextable::as_paragraph(flextable::as_equation("model", width = 3)))
 ```
 
 ```{r, echo = FALSE, include = FALSE}
