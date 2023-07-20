@@ -233,157 +233,117 @@ brms_Vcomp <- function(model, x, group_var){
 #            group_var = "sigma") #it works
 # 
 #lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "liz_id")) %>% bind_rows() #it works
+######################
 
+### THESE FUNCTIONS NEED CLEANING UP DESPERATELY. THEY ARE A MESS AND IT"S HARD TO CHECK THAT THEY ARE DOING THINGS CORRECTLY. THERE HAVE ALREADY BEEN MISTAKES SO LETS SIMPLIFY.
+extract_V <- function(model, level = "F1_Genotype"){
+        
+        #Strings to search for relevant (co)variance components
+            vars <- paste0("sd_", level)
+            cors <- paste0("cor_", level)
+
+        #Extract the relevant sd/(co)variance components
+              SD <- posterior_samples(model, vars)
+             COR <- posterior_samples(model, cors) 
+               V <- SD^2
+
+        #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
+                   COV <-  cbind(COR[1] * (SD[1] * SD[2]), 
+                                 COR[2] * (SD[1] * SD[3]),
+                                 COR[3] * (SD[2] * SD[3]))
+            
+        #Change column names to reflect the values in the dataframe
+            names(COV) <- str_replace(names(COR), "cor", "cov")
+              names(V) <- str_replace(names(V), "sd", "v")
+        
+        # Return a list of V and COV which can be used to calculate variance across age
+            return(list(V = V, COV = COV))
+}
+
+calc_V_across_age <- function(z_age, V, COV){
+
+  # Calculating expected changes in variance across a continuous variable
+    V <- V[1] + (z_age^2) * V[2] + (z_age^4) * V[3] +  # The SD of the intercept and linear and quadratic slope
+           2 * z_age * COV[1]                       +  # Covariance of intercept and linear slope
+           2 * (z_age^2) * COV[2]                   +  # Covariance of intercept and quadratic slope
+           2 * (z_age^3) * COV[3]                      # Covariance of linear and quadratic slope
+    
+    return(V)
+}
+
+get_Vr_across_age <- function(model, z_age){
+  # Extract the sigma of intercept, linear slope 
+       log_SD_e <- posterior_samples(model, pars = "b_") 
   
-brms_m2 <- function(model, x){
-  ##Among ID variance
-  #Strings to search for relevant (co)variance components
-  G_vars <- paste0("sd_F1_Genotype")
-  G_cors <- paste0("cor_F1_Genotype")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_G <- posterior_samples(model, G_vars)
-  COR_G <- posterior_samples(model, G_cors) 
-  V_G <- posterior_samples(model, G_vars)^2
-  #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-  COV_G <- cbind(COR_G[1] * (SD_G[1] * SD_G[2]), 
-                 COR_G[2] * (SD_G[1] * SD_G[3]),
-                 COR_G[3] * (SD_G[2] * SD_G[3]))
-  names(COV_G) <- str_replace(names(COR_G), "cor", "cov")
-  
-  # Now, add everything together while accounting for covariances and their respective powers
-  Vg <- V_G[1] + (x^2)*V_G[2] + (x^4)*V_G[3] +  #The SD of the intercept and linear and quadratic slope
-    2*x*COV_G[1] +    # Covariance of intercept and linear slope
-    2*(x^2)*COV_G[2] + # Covariance of intercept and quadratic slope
-    2*(x^3)*COV_G[3] # Covariance of linear and quadratic slope
-  
-  ##Among Dam variance
-  #Strings to search for relevant (co)variance components
-  M_vars <- paste0("sd_dam_id")
-  M_cors <- paste0("cor_dam_id")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_M <- posterior_samples(model, M_vars)
-  COR_M <- posterior_samples(model, M_cors) 
-  V_M <- posterior_samples(model, M_vars)^2
-  #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-  COV_M <- cbind(COR_M[1] * (SD_M[1] * SD_M[2]), 
-                 COR_M[2] * (SD_M[1] * SD_M[3]),
-                 COR_M[3] * (SD_M[2] * SD_M[3]))
-  names(COV_M) <- str_replace(names(COV_M), "cor", "cov")
-  
-  # Now, add everything together while accounting for covariances and their respective powers
-  Vm <- V_M[1] + (x^2)*V_M[2] + (x^4)*V_M[3] +  #The SD of the intercept and linear and quadratic slope
-    2*x*COV_M[1] +    # Covariance of intercept and linear slope
-    2*(x^2)*COV_M[2] + # Covariance of intercept and quadratic slope
-    2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
-  
-  #Permanent Environment variance
-  #Strings to search for relevant (co)variance components
-  PE_vars <- paste0("sd_id")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_PE <- posterior_samples(model, PE_vars)
+  # Calculate the SD across age intercept and linear slope. exp() because SD is on log scale
+           SD_e <- exp(log_SD_e[,"b_sigma_Intercept"] + (z_age * log_SD_e[,"b_sigma_z_days_since_hatch"])) 
   
   #Squaring SD to get the variance
-  Vpe <- (SD_PE)^2 
+             Ve <- (SD_e)^2 
   
-  #Residuals
-  SD_e <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope # Extract the variance of intercept, linear slope
-  
-  # Now, add everything together
-  SD_comp_e <- exp(SD_e[,"b_sigma_Intercept"] + ((x)*SD_e[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
-  
-  #Squaring SD to get the variance
-  Vresid <- (SD_comp_e)^2 
-  
-  #Calculate total phenotypic variance
-  VtotalP <- Vg + Vm + Vpe + Vresid
-  
-  #Calculate m2 (proportion of variance explained by maternal effects)
-  m2 <- Vm / VtotalP
-  
-  df <- data.frame(z_day = x,
-                   day = backztran_DSH(x),
-                   group_id = "m2",
-                   Estimate = posterior_summary(m2)[1],
-                   Lower =  posterior_summary(m2)[3],
-                   Upper =  posterior_summary(m2)[4])
+  # Return Vr
+             return(Ve)
+}
+
+generate_data <- function(x, z_age, type){
+        data.frame(   z_day = z_age,
+                        day = backztran_DSH(z_age),
+                   group_id = type,
+                   Estimate = posterior_summary(x)[1],
+                      Lower = posterior_summary(x)[3],
+                      Upper = posterior_summary(x)[4])
+}
+
+create_h_m2 <- function(z_age, G, M, E, type = c("h2", "m2")){
+   type <-  match.arg(type)
+   
+   if(type == "h2"){
+        h2 <- G / (G + M + E)
+        df <- generate_data(h2, z_age, type = type)
+   }
+
+   if(type == "m2"){
+        m2 <- M / (G + M + E)
+        df <- generate_data(m2, z_age, type = type)
+   }
+    
   return(df)
 }
 
-# lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, x = x)) %>% bind_rows() #it works
-# 
-# brms_m2(model = cold_brm_5.5,
-#              x = ztran_DsH(seq(0, 500, 30))[10]) #it works
+brms_m2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
+    # G - Additive genetic variance
+                 G <- extract_V(model, level = G)
+      G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
 
-brms_h2 <- function(model, x){
-  ##Among ID variance
-  #Strings to search for relevant (co)variance components
-  G_vars <- paste0("sd_F1_Genotype")
-  G_cors <- paste0("cor_F1_Genotype")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_G <- posterior_samples(model, G_vars)
-  COR_G <- posterior_samples(model, G_cors) 
-  V_G <- posterior_samples(model, G_vars)^2
-  #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-  COV_G <- cbind(COR_G[1] * (SD_G[1] * SD_G[2]), 
-                 COR_G[2] * (SD_G[1] * SD_G[3]),
-                 COR_G[3] * (SD_G[2] * SD_G[3]))
-  names(COV_G) <- str_replace(names(COR_G), "cor", "cov")
-  
-  # Now, add everything together while accounting for covariances and their respective powers
-  Vg <- V_G[1] + (x^2)*V_G[2] + (x^4)*V_G[3] +  #The SD of the intercept and linear and quadratic slope
-    2*x*COV_G[1] +    # Covariance of intercept and linear slope
-    2*(x^2)*COV_G[2] + # Covariance of intercept and quadratic slope
-    2*(x^3)*COV_G[3] # Covariance of linear and quadratic slope
-  
-  ##Among Dam variance
-  #Strings to search for relevant (co)variance components
-  M_vars <- paste0("sd_dam_id")
-  M_cors <- paste0("cor_dam_id")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_M <- posterior_samples(model, M_vars)
-  COR_M <- posterior_samples(model, M_cors) 
-  V_M <- posterior_samples(model, M_vars)^2
-  #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-  COV_M <- cbind(COR_M[1] * (SD_M[1] * SD_M[2]), 
-                 COR_M[2] * (SD_M[1] * SD_M[3]),
-                 COR_M[3] * (SD_M[2] * SD_M[3]))
-  names(COV_M) <- str_replace(names(COV_M), "cor", "cov")
-  
-  # Now, add everything together while accounting for covariances and their respective powers
-  Vm <- V_M[1] + (x^2)*V_M[2] + (x^4)*V_M[3] +  #The SD of the intercept and linear and quadratic slope
-    2*x*COV_M[1] +    # Covariance of intercept and linear slope
-    2*(x^2)*COV_M[2] + # Covariance of intercept and quadratic slope
-    2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
-  
-    #Residuals
-  #Residuals
-  SD_e <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope # Extract the variance of intercept, linear slope
-  
-  # Now, add everything together
-  SD_comp_e <- exp(SD_e[,"b_sigma_Intercept"] + ((x)*SD_e[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
-  
-  #Squaring SD to get the variance
-  Vresid <- (SD_comp_e)^2 
-  
-  #Calculate total phenotypic variance
-  VtotalP <- Vg + Vm +  Vresid
-  
-  #Calculate heritability
-  h2 <- Vg / VtotalP
-  
-  df <- data.frame(z_day = x,
-                   day = backztran_DSH(x),
-                   group_id = "h2",
-                   Estimate = posterior_summary(h2)[1],
-                   Lower =  posterior_summary(h2)[3],
-                   Upper =  posterior_summary(h2)[4])
-  return(df)
-}
+    # M - Maternal effect variance
+                 M <- extract_V(model, level = M)
+      M_across_age <- calc_V_across_age(z_age, M[["V"]], M[["COV"]])
+
+    # R - Environmental variance
+      E_across_age <- get_Vr_across_age(model, z_age)
+
+    # Create the data frame
+                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "m2")
+                return(df)
+}               
+
+brms_h2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
+    # G - Additive genetic variance
+                 G <- extract_V(model, level = G)
+      G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
+
+    # M - Maternal effect variance
+                 M <- extract_V(model, level = M)
+      M_across_age <- calc_V_across_age(z_age, M[["V"]], M[["COV"]])
+
+    # R - Environmental variance
+      E_across_age <- get_Vr_across_age(model, z_age)
+
+    # Create the data frame
+                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "h2")
+                return(df)
+}               
+
 
 # brms_h2(model = brm_5.4,
 #         x = ztran_DsH(seq(0, 500, 30))[10]) #it works
