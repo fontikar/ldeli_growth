@@ -43,7 +43,7 @@ data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.cs
 # Dataset
 cold_DA <- read.csv("data/growth/processed/analysis/COLD_quangen_growth_DA.csv", stringsAsFactors = F)
 
-source("./R/Analysis/brms functions.R")
+source("./R/Analysis/functions.R")
 load("./output/kfold/kfold.RData") # Reloads the kfold models for model selection
 
 #ggplot theme
