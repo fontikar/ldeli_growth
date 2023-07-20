@@ -238,8 +238,8 @@ brms_Vcomp <- function(model, x, group_var){
 brms_m2 <- function(model, x){
   ##Among ID variance
   #Strings to search for relevant (co)variance components
-  G_vars <- paste0("sd_liz_id")
-  G_cors <- paste0("cor_liz_id")
+  G_vars <- paste0("sd_F1_Genotype")
+  G_cors <- paste0("cor_F1_Genotype")
   
   #Extract the relevant sd/(co)variance components 
   SD_G <- posterior_samples(model, G_vars)
@@ -289,10 +289,10 @@ brms_m2 <- function(model, x){
   Vpe <- (SD_PE)^2 
   
   #Residuals
-  SD_e <- posterior_samples(model, "sigma") # Extract the variance of intercept, linear slope
+  SD_e <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope # Extract the variance of intercept, linear slope
   
   # Now, add everything together
-  SD_comp_e <- SD_e[1] + ((x)*SD_e[2]) #The SD of the intercept and linear and quadratic slope
+  SD_comp_e <- exp(SD_e[,"b_sigma_Intercept"] + ((x)*SD_e[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
   
   #Squaring SD to get the variance
   Vresid <- (SD_comp_e)^2 
@@ -320,8 +320,8 @@ brms_m2 <- function(model, x){
 brms_h2 <- function(model, x){
   ##Among ID variance
   #Strings to search for relevant (co)variance components
-  G_vars <- paste0("sd_liz_id")
-  G_cors <- paste0("cor_liz_id")
+  G_vars <- paste0("sd_F1_Genotype")
+  G_cors <- paste0("cor_F1_Genotype")
   
   #Extract the relevant sd/(co)variance components 
   SD_G <- posterior_samples(model, G_vars)
@@ -360,27 +360,18 @@ brms_h2 <- function(model, x){
     2*(x^2)*COV_M[2] + # Covariance of intercept and quadratic slope
     2*(x^3)*COV_M[3] # Covariance of linear and quadratic slope
   
-  #Permanent Environment variance
-  #Strings to search for relevant (co)variance components
-  PE_vars <- paste0("sd_id")
-  
-  #Extract the relevant sd/(co)variance components 
-  SD_PE <- posterior_samples(model, PE_vars)
-  
-  #Squaring SD to get the variance
-  Vpe <- (SD_PE)^2 
-  
+    #Residuals
   #Residuals
-  SD_e <- posterior_samples(model, "sigma") # Extract the variance of intercept, linear slope
+  SD_e <- posterior_samples(model, pars = "b_") # Extract the sigma of intercept, linear slope # Extract the variance of intercept, linear slope
   
   # Now, add everything together
-  SD_comp_e <- SD_e[1] + ((x)*SD_e[2]) #The SD of the intercept and linear and quadratic slope
+  SD_comp_e <- exp(SD_e[,"b_sigma_Intercept"] + ((x)*SD_e[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
   
   #Squaring SD to get the variance
   Vresid <- (SD_comp_e)^2 
   
   #Calculate total phenotypic variance
-  VtotalP <- Vg + Vm + Vpe + Vresid
+  VtotalP <- Vg + Vm +  Vresid
   
   #Calculate heritability
   h2 <- Vg / VtotalP
@@ -517,8 +508,8 @@ get_CV_brms <- function(x, model, group_var){
   if(group_var == "total"){
     ##Among ID variance
     #Strings to search for relevant (co)variance components
-    G_vars <- paste0("sd_liz_id")
-    G_cors <- paste0("cor_liz_id")
+    G_vars <- paste0("sd_F1_Genotype")
+    G_cors <- paste0("cor_F1_Genotype")
     
     #Extract the relevant sd/(co)variance components 
     SD_G <- posterior_samples(model, G_vars)
