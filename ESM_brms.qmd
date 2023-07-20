@@ -322,7 +322,7 @@ cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het")
  hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het")
 
 #Define the days to calculate estimates
-z_days <- ztran_DsH(seq(0, 500, 30))
+z_days <- ztran_DsH(seq(0, 450, 30))
 
 #Get estimates across age for hot treatment
 brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "F1_Genotype")) %>% bind_rows()
