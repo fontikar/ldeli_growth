@@ -9,6 +9,7 @@ output:
 
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(digits = 2)
 rm(list=ls())
 sessionInfo()
 
@@ -16,7 +17,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel, magick)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel, magick, readxl, officer)
 
 #Read in dataset
 #Complete
@@ -98,7 +99,13 @@ Over two years,  we collected `r data %>% nrow()` observations of mass data for 
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
 
-Overall, additive genetic variance, permanent environmental variance and heritability of growth appears to be higher in the hot developmental temperature treatment (Fig. 1). However, there were no significant differences among treatment groups (Table S3). Treatment groups did not differ in how the relative contributions of $G$ and $M$ changed with age as their 95% credible intervals overlapped (Fig. S1). Additive genetic variance remained relatively low and constant upon emergence until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects decreasing sharply upon hatching and dropped to the minimum at approximately six months before it increased (Fig. S1). There were some differences among developmental treatments in how residual variance changed with age (Fig. S1). We investigated whether increases in mass mean over time would result in scale effects that can bias variance estimates. We found that CV of G and M followed the same pattern was the raw variance estimates and conclude that scale effects did not influence our results (Fig. S2).After accounting for heterogenous residual variance, we found no differences in $h^2$ or the proportion of variance explained by maternal effects ($M^2$) (Fig.2). Heritability was very low for the first year of growth in L.deliata and only began increasing at one year of age (Fig. 2). As predicted $M^2$ decreased since hatching, however it increased slightly from six months of age (Fig. 2). The $G$ and $M$ matrices for each treatment group are presented in Table S6-S7.
+Overall, additive genetic variance and heritability ($h^2$) of growth appears to be higher in the hot developmental temperature treatment (Fig. 1). However, there were no significant differences among treatment groups (Table S3). 
+
+Treatment groups did not differ in how the relative contributions of $G$ and $M$ changed with age as their 95% credible intervals overlapped (Fig. S1). Additive genetic variance remained relatively low and constant upon emergence until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects decreased sharply upon hatching and dropped to the minimum at approximately six months before it increased again (Fig. S1). There were some differences among developmental treatments in how residual variance changed with age (Fig. S1). 
+
+We investigated whether increases in mass mean over time would result in scale effects that can bias variance estimates. We found that CV of G and M followed the same pattern was the raw variance estimates and conclude that scale effects did not influence our results (Fig. S2).
+
+After accounting for heterogenous residual variance, we found no differences in $h^2$ or the proportion of variance explained by maternal effects ($M^2$) (Fig.2). Heritability was very low for the first year of growth in L.deliata and only began increasing at one year of age (Fig. 2). As predicted $M^2$ decreased since hatching, however it increased slightly from six months of age (Fig. 2). The $G$ and $M$ matrices for each treatment group are presented in Table S6-S7.
 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
 #Marginalised over age - PIE CHART
@@ -300,10 +307,7 @@ waic_5.1.5.het <- waic(brm_5.1.5.het)
   loo_5.1.het <- loo(brm_5.1.het, "loo", moment_match = TRUE)
 loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
   loo_5.2.het <- loo(brm_5.2.het, "loo", moment_match = TRUE)
-
-# What is the R2 for the top model?
-  r2_fixed_main <- bayes_R2(brm_5.2.het)
-  
+ 
 #Compare
   tab_fixed_waic <- data.frame(loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)) %>% select(waic, elpd_diff, se_diff) %>% mutate(id= row.names(.))
   tab_fixed_loo <- data.frame(loo_compare(loo_5.het, loo_5.1.het, loo_5.1.5.het, loo_5.2.het)) %>% select(looic, elpd_diff, se_diff)  %>% mutate(id= row.names(.))
@@ -318,14 +322,23 @@ loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
 ```
 
 ```{r, echo = FALSE}
+#| label: tbl-tab1
+#| tbl-cap: Coefficient estimates from full model testing the effects of developmental treatment on mass and how mass changes with age. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. nobs = 2926. Age measured in days was z-transformed (mean = 361.34, SD = 185.16). G and M matrices for this model are presented in Table S6
 
 #Table 2
-tab2 <- data.frame(read_xlsx("./output/tables/brms_fixed.xlsx") %>% select(-id))
+tab2 <- data.frame(readxl::read_xlsx("./output/tables/brms_fixed.xlsx") %>% dplyr::select(-id, -matches("waic"))  %>% arrange(looic))
 
-flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5) 
+flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5)  %>% flextable::autofit()
 ```
 
 ```{r, echo = FALSE, include = FALSE}
+
+# Load model
+ brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
+ brm_5.2.het <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
+
+# What is the R2 for the top model?
+  r2_fixed_main <- bayes_R2(brm_5.2.het)
 
 #Calculating inital mass. Extract posterior from the full model. We can marginalise coefficients anyway.
   brm_5.het_post <- posterior_samples(brm_5.het)
@@ -353,7 +366,7 @@ flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5)
   diff <- (cold_intercept - hot_intercept)  %>% posterior_summary() %>% round(3)
 ```
 
-While the model containing an full interaction between treatment and linear and quadratic age was best supported, the improvement was marginal and our main effects model explained substantial amount of variation in mass overall ($R^2$ = `r r2_fixed_main[1]`, 95% CI: `r r2_fixed_main[3]` to `r r2_fixed_main[4]`; Table 1). Developmental temperature did impacted initial mass (Table 1, Fig. 3). Lizards from the ???cold??? treatment were, on average, `r diff[,"Estimate"]`g (95% CI: `r diff[,"Q2.5"]`g ??? `r diff[,"Q97.5"]`g) heavier compared to lizards from the ???hot??? treatment (Table. 2). However, the linear growth rate (Age) and nonlinear growth trajectory ($Age^2$) did not differ significantly between the two developmental temperature treatments (Table S5, Table S7-S9). Irrespective of treatment, lizard mass increased by `r growth_rate[1]`g for every 1 SD unit increase in age (95% CI: `r growth_rate[3]` to `r growth_rate[4]`).  
+While the model containing an full interaction between treatment and linear and quadratic age was best supported, the improvement was marginal and our main effects model explained substantial amount of variation in mass overall ($R^2$ = `r r2_fixed_main[1]`, 95% CI: `r r2_fixed_main[3]` to `r r2_fixed_main[4]`; @tbl-tab1). Developmental temperature did impacted initial mass (Table 1, @fig-fig3). Lizards from the oldtreatment were, on average, `r diff[,"Estimate"]`g (95% CI: `r diff[,"Q2.5"]` to `r diff[,"Q97.5"]`g) heavier compared to lizards from the ottreatment (Table. 2). However, the linear growth rate (Age) and nonlinear growth trajectory ($Age^2$) did not differ significantly between the two developmental temperature treatments (Table S5, Table S7-S9). Irrespective of treatment, lizard mass increased by `r growth_rate[1]`g for every 1 SD unit increase in age (95% CI: `r growth_rate[3]` to `r growth_rate[4]`).  
 
 ```{r, echo = FALSE, cache = TRUE, warning = FALSE, include = FALSE, cache = TRUE}
 #Figure 3 of model predictions showing intercept differences
@@ -372,6 +385,9 @@ While the model containing an full interaction between treatment and linear and 
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
+#| label: fig-fig3
+#| fig-cap: Model predictions of log-transformed mass over age from the two developmental temperatures. We randomly subset 40 lizards (20 from each treatment) to plot their individual growth curves. Points represent mean estimates for each lizard from the hot developmental treatment (hot) and the cold developmental treatment (blue). Thick lines represent average growth curve for each treatment. Faint grey lines are each individual’s growth curve. Model predictions were generated from the full model where interaction terms between treatment and both the linear component and quadratic component were included
+
 #Generationg Figure 3
 hot_ids <- df %>% filter(treatment == "29") %>% pull(liz_id) %>% unique()
 set.seed(6)
