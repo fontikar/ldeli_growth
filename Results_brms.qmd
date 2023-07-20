@@ -16,7 +16,7 @@ sessionInfo()
 # Platform: x86_64-apple-darwin15.6.0 (64-bit)
 # Running under: macOS High Sierra 10.13.6
 
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel)
+pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel, magick)
 
 #Read in dataset
 #Complete
@@ -138,43 +138,51 @@ hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary
 hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
 
 #Plot this
-wesanderson::wes_palette("Darjeeling2") %>% str()
+rerun = FALSE
+if(rerun) {
+  wesanderson::wes_palette("Darjeeling2") %>% str()
 
 cold_pieplot <- hot_cold_Vcomps %>% filter(Treatment == "Cold"  & ! Variable == "h2") %>% 
   mutate(csum = rev(cumsum(rev(Estimate))), 
          pos = Estimate/2 + lead(csum, 1),
          pos = if_else(is.na(pos), Estimate/2, pos),
          labels = c("V_{G}", "V_{M}", "V_{R}"),
-         full_lab = paste0(labels, " = ", Estimate, "(", Lower, ",", Upper, ")"))
+         full_lab = paste0(labels, " = ", Estimate, " (", Lower, ",", Upper, ")"))
 
 cold_pie <- ggplot(cold_pieplot, aes(y = Estimate, x = "", fill = Variable)) + 
   geom_bar(stat="identity", width=1)  + 
   coord_polar("y", start=0) + 
-  scale_fill_manual(values = c("#046C9A", "#D69C4E" , "#000000")) + 
+  scale_fill_manual(values = c("#046C9A", "#ffa000" , "#008888")) + 
   theme_void() + 
   labs(title = "Cold Incubation Treatment") + 
-  geom_label_repel(data = cold_pieplot) +
-  annotate("text", y = pos, label = TeX(full_lab))
-  
-  data = cold_pieplot,
-                   aes(y = pos, label = TeX(full_lab)),
-                   size = 3.5, nudge_x = 1, show.legend = FALSE, parse = TRUE)
+  geom_label_repel(data = cold_pieplot,
+                   aes(y = pos, label = full_lab),
+                   size = 3.5, nudge_x = 1, show.legend = FALSE) +
+                   theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                        legend.position = "none")
 
 hot_pieplot <- hot_cold_Vcomps %>% filter(Treatment == "Hot" & ! Variable == "h2") %>% 
 mutate(csum = rev(cumsum(rev(Estimate))), 
          pos = Estimate/2 + lead(csum, 1),
          pos = if_else(is.na(pos), Estimate/2, pos),
-         labels = c("$V_{G}$", "$V_{M}$", "$V_{R}$")) 
+         labels = c("$V_{G}$", "$V_{M}$", "$V_{R}$"),
+         full_lab = paste0(labels, " = ", Estimate, " (", Lower, ",", Upper, ")")) 
 
 hot_pie <- ggplot(hot_pieplot, aes(y = Estimate, x = "", fill = Variable)) + 
   geom_bar(stat="identity", width=1)  + 
   coord_polar("y", start=0) + 
-  scale_fill_manual(values = c("#046C9A", "#D69C4E" , "#000000")) + 
-  theme_void() + labs(title = "Hot Incubation Treatment")
+  scale_fill_manual(values = c("#046C9A", "#ffa000" , "#008888")) + 
+  theme_void() + labs(title = "Hot Incubation Treatment") + geom_label_repel(data = hot_pieplot,
+                   aes(y = pos, label = full_lab),
+                   size = 3.5, nudge_x = 1, show.legend = FALSE) + theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+                        legend.position = "none")
 
-
-cold_pie + hot_pie 
-
+# Save plot()
+  ggsave(cold_pie + hot_pie, filename = "./output/figures/fig1.pdf", width = 7.629630, height = 4.271605)
+} else {
+  plot <- image_read("./output/figures/fig1.pdf")
+  plot
+}
 #These were saved as pdf and labels were added via PowerPoint
 
 #Test for differences use p_direction HOT  - COLD
@@ -206,12 +214,12 @@ cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") #cold_brm_5.5
  hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het") #hot_brm_5.5
 
 #Define the days
-z_days <- ztran_DsH(seq(0, 500, 30))
+z_days <- ztran_DsH(seq(0, 450, 30))
 
 #Compiling heritability and maternal effects estimates across days
 #Hot developmental temperature model
-brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, x = x)) %>% bind_rows()
-brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, x = x)) %>% bind_rows()
+brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
+brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_hot_h2m2 <- bind_rows(brms_hot_h2, 
@@ -221,8 +229,8 @@ brms_hot_h2m2 <- bind_rows(brms_hot_h2,
 brms_hot_h2m2$treatment <- "hot"
 
 #Cold developmental temperature model
-brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, x = x)) %>% bind_rows()
-brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, x = x)) %>% bind_rows()
+brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
+brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_cold_h2m2 <- bind_rows(brms_cold_h2, 
@@ -239,11 +247,11 @@ brms_top_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "h2"), aes(x = day,
   geom_point(size = 2) + 
   geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
   geom_line(size = 1) + 
-  scale_x_continuous(breaks = seq(0, 500, 60)) + 
-  scale_y_continuous(lim = c(0,0.1)) + 
+  scale_x_continuous(breaks = seq(0, 450, 60)) + 
+  scale_y_continuous(lim = c(0,0.6)) + 
   scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
   labs(x = " ",
-       y = TeX("h^2"),
+       y = TeX("$h^2$"),
        #title = "Relative contribution of variance over age",
        colour =  "Treatment") + 
   theme_bw() + 
@@ -256,10 +264,10 @@ brms_bottom_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "m2"), aes(x = d
   geom_point(size = 2) + 
   geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
   geom_line(size = 1) + 
-  scale_x_continuous(breaks = seq(0, 500, 60)) + 
-  scale_y_continuous(lim = c(0,0.25)) + 
+  scale_x_continuous(breaks = seq(0, 450, 60)) + 
+  scale_y_continuous(lim = c(0,1)) + 
   scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
-  labs(y = TeX("M^2"),
+  labs(y = TeX("$M^2$"),
        x = "Age",
        colour = "Treatment") + 
   theme_bw() + 
@@ -268,7 +276,7 @@ brms_bottom_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "m2"), aes(x = d
         strip.text = element_text(size = 18),
         strip.background = element_blank())
 
-plot_layout(brms_top_2 / brms_bottom_2)
+(brms_top_2 / brms_bottom_2) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
 ```
 
 ## Do growth rate curves differ between incubation treatments? 
