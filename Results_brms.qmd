@@ -44,7 +44,7 @@ my_theme <- theme(#legend.position = "none",
 source("./R/Analysis/functions.R")
 ```
 
-```{r}
+```{r, echo = FALSE, warning = FALSE}
 #| echo: false
 #| warning: false
 #| message: false
@@ -219,7 +219,7 @@ fig1
 
 Treatment groups did not differ in how the relative contributions of $G$ and $M$ changed with age as their 95% credible intervals overlapped (Fig. S1). Additive genetic variance remained relatively low and constant upon emergence until approximately nine months of age, after which it increased rapidly (Fig. S1). Maternal effects decreased sharply upon hatching and dropped to the minimum at approximately six months before it increased again (Fig. S1). There were some differences among developmental treatments in how residual variance changed with age (Fig. S1). 
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE, include = FALSE}
 #Estimates of variance components G M E over age
 #Read in model output
 cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") 
@@ -302,12 +302,12 @@ cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") #cold_brm_5.5
  hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het") #hot_brm_5.5
 
 #Define the days
-z_days <- ztran_DsH(seq(0, 450, 30))
+z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
 
 #Compiling heritability and maternal effects estimates across days
 #Hot developmental temperature model
-brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
-brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
+brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_hot_h2m2 <- bind_rows(brms_hot_h2, 
@@ -317,8 +317,8 @@ brms_hot_h2m2 <- bind_rows(brms_hot_h2,
 brms_hot_h2m2$treatment <- "hot"
 
 #Cold developmental temperature model
-brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
-brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id")) %>% bind_rows()
+brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_cold_h2m2 <- bind_rows(brms_cold_h2, 
@@ -330,6 +330,11 @@ brms_cold_h2m2$treatment <- "cold"
 #Putting hot and cold values together into one dataframe for plotting
 brms_h2m2 <- bind_rows(brms_hot_h2m2, brms_cold_h2m2)
 
+```
+
+```{r, echo = FALSE}
+#| label: fig-fig2
+#| fig-cap: fig3
 #Plotting figure
 brms_top_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "h2"), aes(x = day, y = Estimate, colour = factor(treatment))) +
   geom_point(size = 2) + 
@@ -364,7 +369,7 @@ brms_bottom_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "m2"), aes(x = d
         strip.text = element_text(size = 18),
         strip.background = element_blank())
 
-(brms_top_2 / brms_bottom_2) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
+((brms_top_2) / (brms_bottom_2)) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
 ```
 
 ## Do growth rate curves differ between incubation treatments? 
@@ -402,7 +407,7 @@ loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
   write_xlsx(tab_fixed, "./output/tables/brms_fixed.xlsx")
 ```
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, warning = FALSE}
 #| label: tbl-tab1
 #| tbl-cap: Coefficient estimates from full model testing the effects of developmental treatment on mass and how mass changes with age. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. nobs = 2926. Age measured in days was z-transformed (mean = 361.34, SD = 185.16). G and M matrices for this model are presented in Table S6
 
@@ -412,7 +417,7 @@ tab2 <- data.frame(readxl::read_xlsx("./output/tables/brms_fixed.xlsx") %>% dply
 flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5)  %>% flextable::autofit()
 ```
 
-```{r, echo = FALSE, include = FALSE}
+```{r, echo = FALSE, warning = FALSE, include = FALSE}
 
 # Load model
  brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
@@ -456,13 +461,13 @@ While the model containing an full interaction between treatment and linear and 
   predat <- data_DA %>% select(F1_Genotype, dam_id, treatment) %>% distinct()
 
 # Create a vector of age for predcition. We'll predcit to 400 days. On z_scale.
-  z_days <- ztran_DsH(seq(0, 450, 30))
+  z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
 
 # Back transform to the raw days 
-  days <- backztran_DSH(z_days)
+  days <- backztran_DSH(z_days, data = data_DA)
 
 # Create the dataframe for making predictions.
-  df <- bind_rows(lapply(days, function(x) func_growth_predictions(x, predat = predat, posterior = brm_5.het_post)))
+  df <- bind_rows(lapply(days, function(x) func_growth_predictions(x, predat = predat, posterior = brm_5.het_post, data = data_DA)))
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
@@ -494,7 +499,7 @@ df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
   my_theme
 ```
 
-```{r}
+```{r, echo = FALSE, warning = FALSE}
 #| label: tbl-tbl2
 #| tbl-cap: Coefficient estimates from full model testing the effects of developmental treatment on mass and how mass changes with age. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. nobs = 2926. Age measured in days was z-transformed (mean = 361.34, SD = 185.16). G and M matrices for this model are presented in Table S6
 
