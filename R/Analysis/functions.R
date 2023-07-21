@@ -5,17 +5,19 @@
 #' @title ztran_DsH
 #' @description Takes a variable (in this case age) and z-transforms it to be centered on 0 and have SD units
 #' @param day The variable in days
+#' @param data The data frame from which the scaled age data originates
 #' @return Returns z-transformed age (in SD units and cenetred on 0)
-ztran_DsH <- function(day) {
-  (day - mean(data$days_since_hatch, na.rm = T)) / sd(data$days_since_hatch, na.rm = T)
+ztran_DsH <- function(day, data) {
+  (day - mean(data[,"days_since_hatch"], na.rm = T)) / sd(data[,"days_since_hatch"], na.rm = T)
 }
 
 #' @title backztran_DSH
 #' @description Takes a z-transformed variable (in this case age) and converts it from the z-scale to the raw scale (in days)
 #' @param z_day_since_hatch The z-score data 
+#' @param data The data frame from which the scaled age data originates
 #' @return Returns age in days
-backztran_DSH <- function(z_day_since_hatch){
-  (z_day_since_hatch * sd(data$days_since_hatch, na.rm = T)) + mean(data$days_since_hatch, na.rm = T)
+backztran_DSH <- function(z_day_since_hatch, data){
+  (z_day_since_hatch * sd(data[,"days_since_hatch"], na.rm = T)) + mean(data[,"days_since_hatch"], na.rm = T)
 }
 
 #' @title extract_V
@@ -51,10 +53,11 @@ extract_V <- function(model, level = "F1_Genotype"){
 #' @description Creates a dataframe of day, variable type of the grouping ID (random effect) and the estaimte along with 95% credible interval
 #' @param z_age The z-scaled age variable
 #' @param type A character string that specifies what the variable is (i.e., h2, m2 or some variance component - e.g., dam_id)
+#' @param data The data frame from which the scaled age data originates
 #' @return Returns a dataframe containing the z-scaled age, backtransformed age (in days), the type and the mean estimate and upper and lower 95% credible interval for the variable of interest.
-generate_data <- function(x, z_age, type){
+generate_data <- function(x, z_age, type, data){
         data.frame(   z_day = z_age,
-                        day = backztran_DSH(z_age),
+                        day = backztran_DSH(z_age, data),
                    group_id = type,
                    Estimate = posterior_summary(x)[1],
                       Lower = posterior_summary(x)[3],
@@ -152,29 +155,29 @@ get_Vr_across_age <- function(model, z_age){
 ###########################
 
 #Functions to calculate variance components and h2 and m2 form brms models over x e.g Age
-brms_Vcomp <- function(model, x, group_var){
+brms_Vcomp <- function(model, x, group_var, data){
   
   if(group_var == "F1_Genotype"){
                G <- extract_V(model, level = group_var)
     G_across_age <- calc_V_across_age(x, G[["V"]], G[["COV"]])
-              df <- generate_data(G_across_age, x, type = group_var)
+              df <- generate_data(G_across_age, x, type = group_var, data)
   }
   
   if(group_var == "dam_id"){
                M <- extract_V(model, level = group_var)
-    M_across_age <- calc_V_across_age(x, G[["V"]], G[["COV"]])
-              df <- generate_data(M_across_age, x, type = group_var)
+    M_across_age <- calc_V_across_age(x, M[["V"]], M[["COV"]])
+              df <- generate_data(M_across_age, x, type = group_var, data)
   }
  
   if(group_var == "sigma"){
                E <-  get_Vr_across_age(model, x)
-              df <-  generate_data(E, x, type = group_var)
+              df <-  generate_data(E, x, type = group_var, data)
   }
   
   if(group_var == "total"){   
     #Calculate total phenotypic variance
     VtotalP <- VG + VM + VE
-    df <-  generate_data(VtotalP, x, type = group_var)
+    df <-  generate_data(VtotalP, x, type = group_var, data)
   }
   return(df)
 } 
