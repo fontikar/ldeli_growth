@@ -114,18 +114,19 @@ calc_V_across_age <- function(z_age, V, COV){
 #' @param G The estimate of additive genetic variance
 #' @param M The estimate of maternal effect variance
 #' @param E The estimated environmental/residual variance
+#' @param data The data frame from which the scaled age data originates
 #' @return Returns a dataframe with the estimated h2 and m2 at a given age along with upper and lower credible intervals
-create_h_m2 <- function(z_age, G, M, E, type = c("h2", "m2")){
+create_h_m2 <- function(z_age, G, M, E, type = c("h2", "m2"), data){
    type <-  match.arg(type)
    
    if(type == "h2"){
         h2 <- G / (G + M + E)
-        df <- generate_data(h2, z_age, type = type)
+        df <- generate_data(h2, z_age, type = type, data = data)
    }
 
    if(type == "m2"){
         m2 <- M / (G + M + E)
-        df <- generate_data(m2, z_age, type = type)
+        df <- generate_data(m2, z_age, type = type, data = data)
    }
     
   return(df)
@@ -182,7 +183,7 @@ brms_Vcomp <- function(model, x, group_var, data){
   return(df)
 } 
 
-brms_m2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
+brms_m2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id", data) {
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
       G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
@@ -195,11 +196,11 @@ brms_m2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
       E_across_age <- get_Vr_across_age(model, z_age)
 
     # Create the data frame
-                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "m2")
+                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "m2", data = data)
                 return(df)
 }               
 
-brms_h2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
+brms_h2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id", data) {
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
       G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
@@ -212,11 +213,11 @@ brms_h2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id") {
       E_across_age <- get_Vr_across_age(model, z_age)
 
     # Create the data frame
-                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "h2")
+                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "h2", data = data)
                 return(df)
 }               
 
-func_growth_predictions <- function(day, predat, posterior){
+func_growth_predictions <- function(day, predat, posterior, data){
   
   func <- function(liz_id = predat$F1_Genotype[i]){
     # finding dam_id that corresponds to liz_id
@@ -224,8 +225,8 @@ func_growth_predictions <- function(day, predat, posterior){
     treat <- predat$treatment[predat$F1_Genotype == liz_id]
     
     pred <- posterior[, "b_Intercept"] + #Intercept
-      posterior[, "b_z_days_since_hatch"] * ztran_DsH(day) + #Linear day effect 
-      posterior[, "b_z_days_since_hatch_I2"] * ((ztran_DsH(day))^2) + #Curve day effect 
+      posterior[, "b_z_days_since_hatch"] * ztran_DsH(day, data = data) + #Linear day effect 
+      posterior[, "b_z_days_since_hatch_I2"] * ((ztran_DsH(day, data = data))^2) + #Curve day effect 
       posterior[, paste0("r_F1_Genotype[",liz_id, ",Intercept]")] + #Lizard intercept
       posterior[, paste0("r_F1_Genotype[",liz_id, ",z_days_since_hatch]")] + #Lizard slope
       posterior[, paste0("r_F1_Genotype[",liz_id, ",z_days_since_hatch_I2]")] + #Lizard curve z_days_since_hatch_I2
@@ -258,12 +259,12 @@ func_growth_predictions <- function(day, predat, posterior){
 ############################
 ## Functions Below Still need to be simplified. 
 ###########################
-get_CV_brms <- function(x, model, group_var){
+get_CV_brms <- function(x, model, group_var, data){
   #Extract SOL
   model_post <- posterior_samples(model)
   
   #Convert regular day to Z days 
-  z <- ztran_DsH(x)
+  z <- ztran_DsH(x, data = data)
   
   #Make predictions for mean mass at a given age
   pred <- model_post[, "b_Intercept"] + #Intercept
@@ -442,12 +443,12 @@ get_CV_brms <- function(x, model, group_var){
   return(df)
 }
 
-get_CV_X2 <- function(x, model, group_var){
+get_CV_X2 <- function(x, model, group_var, data){
   #Extract posterior
   model_post <- posterior_samples(model)
   
   #Convert regular day to Z days 
-  z <- ztran_DsH(x)
+  z <- ztran_DsH(x, data = data)
   #Make predictions for mean mass at a given age
   pred <- model_post[, "b_Intercept"] + #Intercept
     model_post[, "b_z_days_since_hatch"] *  z + #Linear day effect 
@@ -516,7 +517,7 @@ get_CV_X2 <- function(x, model, group_var){
       CV_X2 = (CV_g / (CV_g + CV_m + CV_e))
       
       df <- data.frame(   z_day = z,
-                            day = backztran_DSH(z),
+                            day = backztran_DSH(z, data = data),
                        group_id = group_var,
                        Mean_age = posterior_summary(pred)[1],
                        Estimate = posterior_summary(CV_X2)[1],
@@ -528,7 +529,7 @@ get_CV_X2 <- function(x, model, group_var){
       CV_X2 = (CV_m / (CV_g + CV_m + CV_e))
       
       df <- data.frame(   z_day = z,
-                            day = backztran_DSH(z),
+                            day = backztran_DSH(z, data = data),
                        group_id = group_var,
                        Mean_age = posterior_summary(pred)[1],
                        Estimate = posterior_summary(CV_X2)[1],
