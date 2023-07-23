@@ -102,21 +102,21 @@ Over two years,  we collected `r data %>% nrow()` observations of mass data for 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
 #Marginalised over age - PIE CHART
 #Read in intercept models
-cold_brm_4.5 <- readRDS("./output/rds/brm_10_cold") #cold_brm_4.5
-hot_brm_4.5 <- readRDS("./output/rds/brm_10_hot") #hot_brm_4.5
+  brm_10_cold <- readRDS("./output/rds/brm_10_cold") #brm_10_cold
+  brm_10_hot <- readRDS("./output/rds/brm_10_hot") #brm_10_hot
 
 #Extract VCV
-cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
-hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
+  brm_10_cold_post <- posterior_samples(brm_10_cold) 
+  brm_10_hot_post <- posterior_samples(brm_10_hot) 
 
 #Calculate total phenotypic variance for each treatment
-Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 +
-  hot_brm_4.5_post[,"sd_dam_id__Intercept"]^2 + 
-  hot_brm_4.5_post[,"sigma"]^2
+Hot_Pheno_intercept <- brm_10_hot_post[,"sd_F1_Genotype__Intercept"]^2 +
+  brm_10_hot_post[,"sd_dam_id__Intercept"]^2 + 
+  brm_10_hot_post[,"sigma"]^2
 
-cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 +
-  cold_brm_4.5_post[,"sd_dam_id__Intercept"]^2 + 
-  cold_brm_4.5_post[,"sigma"]^2
+cold_Pheno_intercept <- brm_10_cold_post[,"sd_F1_Genotype__Intercept"]^2 +
+  brm_10_cold_post[,"sd_dam_id__Intercept"]^2 + 
+  brm_10_cold_post[,"sigma"]^2
 
 #Create a table
 hot_cold_Vcomps <- as.data.frame(matrix(ncol = 5, nrow = 8))
@@ -126,15 +126,15 @@ hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =4)
 hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal",  "Vresidual", "h2"), 2)
 
 #Fill in table
-hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
-hot_cold_Vcomps[2,3:5] <- ((hot_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[4,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept) %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[1,3:5] <- ((brm_10_hot_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[2,3:5] <- ((brm_10_hot_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[3,3:5] <- ((brm_10_hot_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[4,3:5] <- ((brm_10_hot_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept) %>% posterior_summary())[-2] %>% round(3)
 
-hot_cold_Vcomps[5,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[5,3:5] <- ((brm_10_cold_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[6,3:5] <- ((brm_10_cold_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[7,3:5] <- ((brm_10_cold_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[8,3:5] <- ((brm_10_cold_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
 
 #Plot this
 rerun = FALSE
@@ -184,25 +184,25 @@ hot_pie <- ggplot(hot_pieplot, aes(y = Estimate, x = "", fill = Variable)) +
 }
 #These were saved as pdf and labels were added via PowerPoint
 
-#Test for differences use p_direction HOT  - COLD
+#Test for differences HOT  - COLD
 #Overall variance
 diff_Pheno_intercept <- Hot_Pheno_intercept - cold_Pheno_intercept
 posterior_summary(diff_Pheno_intercept)
 
 #Additive genetic variance
-diff_Vg <- (hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2) - (cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2
+diff_Vg <- (brm_10_hot_post[,"sd_F1_Genotype__Intercept"]^2) - (brm_10_cold_post[,"sd_F1_Genotype__Intercept"])^2
 posterior_summary(diff_Vg)
 
 #Maternal variance
-diff_Vm <- (hot_brm_4.5_post[,"sd_dam_id__Intercept"]^2) - (cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2
+diff_Vm <- (brm_10_hot_post[,"sd_dam_id__Intercept"]^2) - (brm_10_cold_post[,"sd_dam_id__Intercept"])^2
 posterior_summary(diff_Vm)
 
 #Residual variance
-diff_Ve <- (hot_brm_4.5_post[,"sigma"]^2) - (cold_brm_4.5_post[,"sigma"])^2
+diff_Ve <- (brm_10_hot_post[,"sigma"]^2) - (brm_10_cold_post[,"sigma"])^2
 posterior_summary(diff_Ve)
 
 #h2
-diff_h2 <- (hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept) - (cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept)
+diff_h2 <- (brm_10_hot_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept) - (brm_10_cold_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept)
 posterior_summary(diff_h2)
 
 ```
@@ -211,6 +211,7 @@ Overall, additive genetic variance and heritability ($h^2$) of growth appears to
 
 ```{r}
 #| label: fig-fig1
+#| echo: false
 #| fig-cap: Pie charts depicting the overall relative contributions of mass variance for the hot (nlizards  = 126) and cold (nlizards  =136) developmental treatment group irrespective of age. Point estimates and 95% credible intervals are presented in Table S3. There were no significant differences in variance components between developmental temperature treatments. * in indicates very small values that were above 0.The influence of developmental temperature on genetic and non-genetic variance across age 
 
 fig1 <- image_read("./output/figures/fig1_edited.pdf")
@@ -222,16 +223,16 @@ Treatment groups did not differ in how the relative contributions of $G$ and $M$
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
 #Estimates of variance components G M E over age
 #Read in model output
-cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") 
- hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het")
+brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het") 
+ brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het")
 
 #Define the days to calculate estimates
 z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
 
 #Get estimates across age for hot treatment
-brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = hot_brm_5.5, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 
 #Compile all variance estimates together
@@ -243,9 +244,9 @@ brms_hot <- bind_rows(brms_hot_Vg,
 brms_hot$Treatment <- "Hot"
 
 #Obtain estimates for cold treatment
-brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = cold_brm_5.5, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Compile all variance estimates together
 brms_cold <- bind_rows(brms_cold_Vg,
@@ -298,16 +299,16 @@ After accounting for heterogenous residual variance, we found no differences in 
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE, include = FALSE}
 #Estimating h2 and m2 over age
-cold_brm_5.5 <- readRDS("./output/rds/brm_12_cold_het") #cold_brm_5.5
- hot_brm_5.5 <- readRDS("./output/rds/brm_12_hot_het") #hot_brm_5.5
+brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het") #brm_12_cold_het
+ brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het") #brm_12_hot_het
 
 #Define the days
 z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
 
 #Compiling heritability and maternal effects estimates across days
 #Hot developmental temperature model
-brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
-brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = hot_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = brm_12_hot_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = brm_12_hot_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_hot_h2m2 <- bind_rows(brms_hot_h2, 
@@ -317,8 +318,8 @@ brms_hot_h2m2 <- bind_rows(brms_hot_h2,
 brms_hot_h2m2$treatment <- "hot"
 
 #Cold developmental temperature model
-brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
-brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = cold_brm_5.5, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = brm_12_cold_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = brm_12_cold_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_cold_h2m2 <- bind_rows(brms_cold_h2, 
