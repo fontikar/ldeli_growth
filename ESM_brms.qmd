@@ -289,21 +289,21 @@ flextable(tableDA_het)  %>% align(align = "center", part = "all") %>% autofit()
 ```{r, echo = FALSE, include = FALSE}
 #Estimates of G, M, PE and h2 marginalised over age
 #Read in intercept models
-cold_brm_4.5 <- readRDS("./output/rds/brm_10_cold")
- hot_brm_4.5 <- readRDS("./output/rds/brm_10_hot")
+brm_10_cold <- readRDS("./output/rds/brm_10_cold")
+ brm_10_hot <- readRDS("./output/rds/brm_10_hot")
 
 #Extract VCV
-cold_brm_4.5_post <- posterior_samples(cold_brm_4.5) 
-hot_brm_4.5_post <- posterior_samples(hot_brm_4.5) 
+brm_10_cold_post <- posterior_samples(brm_10_cold) 
+brm_10_hot_post <- posterior_samples(brm_10_hot) 
 
 #Calculate total phenotypic variance for each treatment
-Hot_Pheno_intercept <- hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"] +
-  hot_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  hot_brm_4.5_post[,"sigma"]
+Hot_Pheno_intercept <- brm_10_hot_post[,"sd_F1_Genotype__Intercept"] +
+  brm_10_hot_post[,"sd_dam_id__Intercept"] + 
+  brm_10_hot_post[,"sigma"]
 
-cold_Pheno_intercept <- cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"] +
-  cold_brm_4.5_post[,"sd_dam_id__Intercept"] + 
-  cold_brm_4.5_post[,"sigma"]
+cold_Pheno_intercept <- brm_10_cold_post[,"sd_F1_Genotype__Intercept"] +
+  brm_10_cold_post[,"sd_dam_id__Intercept"] + 
+  brm_10_cold_post[,"sigma"]
 
 #Convert to variance
 Hot_Pheno_intercept_V <- (Hot_Pheno_intercept)^2
@@ -317,15 +317,15 @@ hot_cold_Vcomps$Treatment <- rep(c("Hot", "Cold"), each =4)
 hot_cold_Vcomps$Variable <-rep(c("V_additive_g", "V_maternal", "Vresidual", "h2"), 2)
 
 #Fill in table
-hot_cold_Vcomps[1,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
-hot_cold_Vcomps[2,3:5] <- ((hot_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[3,3:5] <- ((hot_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[4,3:5] <- ((hot_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept_V) %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[1,3:5] <- ((brm_10_hot_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2] %>% round(3)
+hot_cold_Vcomps[2,3:5] <- ((brm_10_hot_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[3,3:5] <- ((brm_10_hot_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[4,3:5] <- ((brm_10_hot_post[,"sd_F1_Genotype__Intercept"]^2 / Hot_Pheno_intercept_V) %>% posterior_summary())[-2] %>% round(3)
 
-hot_cold_Vcomps[5,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[6,3:5] <- ((cold_brm_4.5_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[7,3:5] <- ((cold_brm_4.5_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
-hot_cold_Vcomps[8,3:5] <- ((cold_brm_4.5_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[5,3:5] <- ((brm_10_cold_post[,"sd_F1_Genotype__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[6,3:5] <- ((brm_10_cold_post[,"sd_dam_id__Intercept"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[7,3:5] <- ((brm_10_cold_post[,"sigma"])^2 %>% posterior_summary())[-2]%>% round(3)
+hot_cold_Vcomps[8,3:5] <- ((brm_10_cold_post[,"sd_F1_Genotype__Intercept"]^2 / cold_Pheno_intercept) %>% posterior_summary())[-2]%>% round(3)
 ```
 
 ```{r, echo = FALSE}
@@ -335,7 +335,7 @@ flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofi
 
 ```
 
-
+#### CHECK ALL BELOW ####
 ```{r, echo = FALSE, include= FALSE}
 #Compiling G matrix for hot incubated lizards
 #Calculate VAR from SD
