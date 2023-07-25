@@ -335,7 +335,7 @@ flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofi
 
 ```
 
-#### CHECK ALL BELOW ####
+
 ```{r, echo = FALSE, include= FALSE}
 #Compiling G matrix for hot incubated lizards
 #Calculate VAR from SD
@@ -527,13 +527,13 @@ where $CV_x$ is the CV for a given variance component e.g. $CV_M$ is the CV of m
 ```{r, echo = FALSE, include= FALSE}
 #CV calculations of G M Sigma
 #Read in model output
-hot_brm_5.4 <- readRDS("./output/rds/brm_12_hot_het_fixed1") 
-cold_brm_5.4 <- readRDS("./output/rds/brm_12_cold_het_fixed1") 
+brm_12_hot_het_fixed1 <- readRDS("./output/rds/brm_12_hot_het_fixed1") 
+brm_12_cold_het_fixed1 <- readRDS("./output/rds/brm_12_cold_het_fixed1") 
 
 #Obtain CV estimates over age for hot lizards
-hot_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "F1_Genotype")) %>% bind_rows()
-hot_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
-hot_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = hot_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
+hot_CV_G <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+hot_CV_M <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+hot_CV_E <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Put these together
 hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
@@ -542,9 +542,9 @@ hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
 hot_CV$treatment <- "Hot"
 
 #Obtain CV estimates over age for cold lizards
-cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "F1_Genotype")) %>% bind_rows()
-cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "dam_id")) %>% bind_rows()
-cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = cold_brm_5.4, x = x, group_var = "sigma")) %>% bind_rows()
+cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Put these together
 cold_CV <- bind_rows(cold_CV_G, cold_CV_M, cold_CV_E)
@@ -580,17 +580,19 @@ ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y =
         strip.background = element_blank())
 ```
 
+#### CHECK ALL BELOW ####
+
 ```{r}
 #CV of h2 and m2
-hot_CV_h2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = hot_brm_5.4, x = x, group_var = "h2")) %>% bind_rows()
-hot_CV_m2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = hot_brm_5.4, x = x, group_var = "m2")) %>% bind_rows()
+hot_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, x = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+hot_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, x = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 hot_CV_ratios <- bind_rows(hot_CV_h2, 
                            hot_CV_m2)
 hot_CV_ratios$treatment <- "hot"
 
-cold_CV_h2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = cold_brm_5.4, x = x, group_var = "h2")) %>% bind_rows()
-cold_CV_m2 <- lapply(seq(0, 500, 30), function(x) get_CV_X2(model = cold_brm_5.4, x = x, group_var = "m2")) %>% bind_rows()
+cold_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, x = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+cold_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, x = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 cold_CV_ratios <- bind_rows(cold_CV_h2, 
                            cold_CV_m2)
