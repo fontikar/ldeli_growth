@@ -339,12 +339,15 @@ flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofi
 ```{r, echo = FALSE, include= FALSE}
 #Compiling G matrix for hot incubated lizards
 #Calculate VAR from SD
-    hot_G_sd_post <- posterior_samples(hot_brm_5.5, "^sd_F1_Genotype")
-   hot_G_var_post <- posterior_samples(hot_brm_5.5, "^sd_F1_Genotype")^2
+
+brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het")
+
+    hot_G_sd_post <- posterior_samples(brm_12_hot_het, "^sd_F1_Genotype")
+   hot_G_var_post <- posterior_samples(brm_12_hot_het, "^sd_F1_Genotype")^2
 hot_G_var_summary <- posterior_summary(hot_G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-   hot_G_cor_post <- posterior_samples(hot_brm_5.5, "^cor_F1_Genotype")
+   hot_G_cor_post <- posterior_samples(brm_12_hot_het, "^cor_F1_Genotype")
 hot_G_cor_summary <- posterior_summary(hot_G_cor_post)[,-2] %>% signif(digits = 3)
 
 hot_G_cov_post <- cbind(hot_G_cor_post[1] * (hot_G_sd_post[1] * hot_G_sd_post[2]), 
@@ -380,12 +383,12 @@ write.csv(Table_4_G, "output/tables/Table_4_G_brms_hot.csv")
 #Compiling M matrix for hot incubated lizards
 
 #Calculate VAR from SD
-hot_M_sd_post <- posterior_samples(hot_brm_5.5, "^sd_dam_id")
-hot_M_var_post <- posterior_samples(hot_brm_5.5, "^sd_dam_id")^2
+hot_M_sd_post <- posterior_samples(brm_12_hot_het, "^sd_dam_id")
+hot_M_var_post <- posterior_samples(brm_12_hot_het, "^sd_dam_id")^2
 hot_M_var_summary <- posterior_summary(hot_M_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-hot_M_cor_post <- posterior_samples(hot_brm_5.5, "^cor_dam_id")
+hot_M_cor_post <- posterior_samples(brm_12_hot_het, "^cor_dam_id")
 hot_M_cor_summary <- posterior_summary(hot_M_cor_post)[,-2] %>% signif(digits = 3)
 
 hot_M_cov_post <- cbind(hot_M_cor_post[1] * (hot_M_sd_post[1] * hot_M_sd_post[2]), 
@@ -417,8 +420,8 @@ Table_4_M[3, 2] <- paste0(hot_M_cor_summary[3,1], " (", hot_M_cor_summary[3,2], 
 write.csv(Table_4_M, "output/tables/Table_4_M_brms_hot.csv")
 
 #Residuals
-  hot_e_int <- exp(posterior_samples(hot_brm_5.5, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
-hot_e_slope <- posterior_samples(hot_brm_5.5, "b_sigma_z") %>% posterior_summary() %>% signif(digits = 3)
+  hot_e_int <- exp(posterior_samples(brm_12_hot_het, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
+hot_e_slope <- posterior_samples(brm_12_hot_het, "b_sigma_z") %>% posterior_summary() %>% signif(digits = 3)
 
      Table_4_E <- data.frame(matrix(nrow = 1, ncol = 3))
 Table_4_E[1,2] <- paste0(hot_e_int[,"Estimate"], " (", hot_e_int[,"Q2.5"], " - ", hot_e_int[,"Q97.5"], ")")
@@ -429,13 +432,15 @@ write.csv(Table_4_E, "output/tables/Table_4_E_brms_hot.csv")
 ```{r, echo = FALSE, include= FALSE}
 #Compiling G matrix for cold incubated lizards
 
+brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
+
 #Calculate VAR from SD
-    cold_G_sd_post <- posterior_samples(cold_brm_5.5, "^sd_F1_Genotype")
-   cold_G_var_post <- posterior_samples(cold_brm_5.5, "^sd_F1_Genotype")^2
+    cold_G_sd_post <- posterior_samples(brm_12_cold_het, "^sd_F1_Genotype")
+   cold_G_var_post <- posterior_samples(brm_12_cold_het, "^sd_F1_Genotype")^2
 cold_G_var_summary <- posterior_summary(cold_G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-   cold_G_cor_post <- posterior_samples(cold_brm_5.5, "^cor_F1_Genotype")
+   cold_G_cor_post <- posterior_samples(brm_12_cold_het, "^cor_F1_Genotype")
 cold_G_cor_summary <- posterior_summary(cold_G_cor_post)[,-2] %>% signif(digits = 3)
 
 cold_G_cov_post <- cbind(cold_G_cor_post[1] * (cold_G_sd_post[1] * cold_G_sd_post[2]), 
@@ -464,19 +469,19 @@ Table_5_G[2, 1] <- paste0(cold_G_cor_summary[1,1], " (", cold_G_cor_summary[1,2]
 Table_5_G[3, 1] <- paste0(cold_G_cor_summary[2,1], " (", cold_G_cor_summary[2,2], " - ", cold_G_cor_summary[2,3], ")")
 Table_5_G[3, 2] <- paste0(cold_G_cor_summary[3,1], " (", cold_G_cor_summary[3,2], " - ", cold_G_cor_summary[3,3], ")")
 
-#write.csv(Table_5_G, "output/tabs/Table_5_G_G_brms_cold.csv")
+#write.csv(Table_5_G, "output/tables/Table_5_G_G_brms_cold.csv")
 ```
 
 ```{r, echo = FALSE, include= FALSE}
 #Compiling M matrix for cold incubated lizards
 
 #Calculate VAR from SD
-cold_M_sd_post <- posterior_samples(cold_brm_5.5, "^sd_dam_id")
-cold_M_var_post <- posterior_samples(cold_brm_5.5, "^sd_dam_id")^2
+cold_M_sd_post <- posterior_samples(brm_12_cold_het, "^sd_dam_id")
+cold_M_var_post <- posterior_samples(brm_12_cold_het, "^sd_dam_id")^2
 cold_M_var_summary <- posterior_summary(cold_M_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-cold_M_cor_post <- posterior_samples(cold_brm_5.5, "^cor_dam_id")
+cold_M_cor_post <- posterior_samples(brm_12_cold_het, "^cor_dam_id")
 cold_M_cor_summary <- posterior_summary(cold_M_cor_post)[,-2] %>% signif(digits = 3)
 
 cold_M_cov_post <- cbind(cold_M_cor_post[1] * (cold_M_sd_post[1] * cold_M_sd_post[2]), 
@@ -505,11 +510,11 @@ Table_5_M[2, 1] <- paste0(cold_M_cor_summary[1,1], " (", cold_M_cor_summary[1,2]
 Table_5_M[3, 1] <- paste0(cold_M_cor_summary[2,1], " (", cold_M_cor_summary[2,2], " - ", cold_M_cor_summary[2,3], ")")
 Table_5_M[3, 2] <- paste0(cold_M_cor_summary[3,1], " (", cold_M_cor_summary[3,2], " - ", cold_M_cor_summary[3,3], ")")
 
-#write.csv(Table_5_M, "output/tabs/Table_5_M_brms_cold.csv")
+#write.csv(Table_5_M, "output/tables/Table_5_M_brms_cold.csv")
 
 #Residuals
-exp(posterior_samples(cold_brm_5.5, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
-exp(posterior_samples(cold_brm_5.5, "b_sigma_z"))^2 %>% posterior_summary() %>% signif(digits = 3)
+exp(posterior_samples(brm_12_cold_het, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
+exp(posterior_samples(brm_12_cold_het, "b_sigma_z"))^2 %>% posterior_summary() %>% signif(digits = 3)
 ```
 
 ## Accounting for scale-effects using coefficients of variation
