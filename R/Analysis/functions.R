@@ -449,34 +449,19 @@ get_CV_X2 <- function(x, model, group_var, data){
   
   #Convert regular day to Z days 
   z <- ztran_DsH(x, data = data)
+  
   #Make predictions for mean mass at a given age
-  pred <- model_post[, "b_Intercept"] + #Intercept
-    model_post[, "b_z_days_since_hatch"] *  z + #Linear day effect 
-    model_post[, "b_z_days_since_hatch_I2"] * (z^2) #Curve day effect 
+  pred <- model_post[, "b_Intercept"] +                     # Intercept
+          (model_post[, "b_z_days_since_hatch"] * z) +      # Linear day effect 
+          (model_post[, "b_z_days_since_hatch_I2"] * (z^2)) # Curve day effect 
   
   #Get variance at a given age
   #Among ID
-    #Strings to search for relevant (co)variance components
-    G_vars <- paste0("sd_","F1_Genotype")
-    G_cors <- paste0("cor_","F1_Genotype")
+         V_g <- extract_V(model, level = "F1_Genotype")
+
+     V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])
     
-    #Extract the relevant sd/(co)variance components 
-    G_SD <- posterior_samples(model, G_vars)
-    G_COR <- posterior_samples(model, G_cors) 
-    G_V <- posterior_samples(model, G_vars)^2
-    #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-    G_COV <- cbind(G_COR[1] * (G_SD[1] * G_SD[2]), 
-                   G_COR[2] * (G_SD[1] * G_SD[3]),
-                   G_COR[3] * (G_SD[2] * G_SD[3]))
-    names(G_COV) <- str_replace(names(G_COR), "cor", "cov")
-    
-    # Now, add everything together while accounting for covariances and their powers
-    V_g <- G_V[1] + (z^2)*G_V[2] + (z^4)*G_V[3] +  #The variances of the intercept and linear and quadratic slope
-      2*z*G_COV[1] +    # Covariance of intercept and linear slope
-      2*(z^2)*G_COV[2] + # Covariance of intercept and quadratic slope
-      2*(z^3)*G_COV[3] # Covariance of linear and quadratic slope
-    
-    CV_g <- (100 * (V_g^0.5)) / exp(pred)
+        CV_g <- (100 * (V_g^0.5)) / exp(pred)
     
     #Strings to search for relevant (co)variance components
     M_vars <- paste0("sd_","dam_id")
