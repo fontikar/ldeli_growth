@@ -450,76 +450,55 @@ get_CV_X2 <- function(x, model, group_var, data){
   #Convert regular day to Z days 
   z <- ztran_DsH(x, data = data)
   
-  #Make predictions for mean mass at a given age
+  #Make predictions for mean mass at a given age. Use this mass to calculate CV
   pred <- model_post[, "b_Intercept"] +                     # Intercept
           (model_post[, "b_z_days_since_hatch"] * z) +      # Linear day effect 
           (model_post[, "b_z_days_since_hatch_I2"] * (z^2)) # Curve day effect 
   
   #Get variance at a given age
-  #Among ID
+  # Exract G
          V_g <- extract_V(model, level = "F1_Genotype")
+     V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])  
+        CV_g <- (100 * (V_g^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
+  
+  # Extract M
+         V_m <- extract_V(model, level = "dam_id")
+     V_m_age <- calc_V_across_age(x, V_m[["V"]], V_m[["COV"]])  
+        CV_m <- (100 * (V_m^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
 
-     V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])
-    
-        CV_g <- (100 * (V_g^0.5)) / exp(pred)
-    
-    #Strings to search for relevant (co)variance components
-    M_vars <- paste0("sd_","dam_id")
-    M_cors <- paste0("cor_","dam_id")
-    
-    #Extract the relevant sd/(co)variance components 
-     M_SD <- posterior_samples(model, M_vars)
-    M_COR <- posterior_samples(model, M_cors)
-      M_V <- posterior_samples(model, M_vars)^2
-    
-    #Convert correlation to covariance #Cor(1,2) * (SD1 X SD2) = Cov(1,2)
-    M_COV <- cbind(M_COR[1] * (M_SD[1] * M_SD[2]), 
-                   M_COR[2] * (M_SD[1] * M_SD[3]),
-                   M_COR[3] * (M_SD[2] * M_SD[3]))
-    names(M_COV) <- str_replace(names(M_COR), "cor", "cov")
-    
-    # Now, add everything together while accounting for covariances and their powers
-    V_m <- M_V[1] + (z^2)*M_V[2] + (z^4)*M_V[3] +  #The variances of the intercept and linear and quadratic slope
-           2*z*M_COV[1] +    # Covariance of intercept and linear slope
-           2*(z^2)*M_COV[2] + # Covariance of intercept and quadratic slope
-           2*(z^3)*M_COV[3] # Covariance of linear and quadratic slope
-    
-    CV_m <- (100 * (V_m^0.5)) / exp(pred)
-    
-    # Sigma / Residual Variance
-    Sigma_SD <- posterior_samples(model, pars = "b") # Extract the variance of intercept, linear slope
-    
-    # Now, add everything together
-    Sigma_comp <- exp(SD[,"b_sigma_Intercept"] + ((x)*SD[,"b_sigma_z_days_since_hatch"])) #The SD of the intercept and linear and quadratic slope
-    
-    #Squaring SD to get the variance
-    Vs <- (Sigma_comp)^2 
-    
-    CV_e <- (100 * (Vs^0.5)) / exp(pred)
+  # Extract E
+         V_e <-  get_Vr_across_age(model, x)
+        CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
     
   #Calculate heritability
     if(group_var == "h2"){
-      CV_X2 = (CV_g / (CV_g + CV_m + CV_e))
+
+      df <- create_h_m2(z, CV_g, CV_m, CV_e, type = "h2", data = data)
+
+      #CV_X2 = (CV_g / (CV_g + CV_m + CV_e))
       
-      df <- data.frame(   z_day = z,
-                            day = backztran_DSH(z, data = data),
-                       group_id = group_var,
-                       Mean_age = posterior_summary(pred)[1],
-                       Estimate = posterior_summary(CV_X2)[1],
-                          Lower =  posterior_summary(CV_X2)[3],
-                          Upper =  posterior_summary(CV_X2)[4])
+      #df <- data.frame(   z_day = z,
+                           # day = backztran_DSH(z, data = data),
+                       #group_id = group_var,
+                       #Mean_age = posterior_summary(pred)[1],
+                       #Estimate = posterior_summary(CV_X2)[1],
+                        #  Lower =  posterior_summary(CV_X2)[3],
+                        #  Upper =  posterior_summary(CV_X2)[4])
       
     }
     if(group_var == "m2"){
-      CV_X2 = (CV_m / (CV_g + CV_m + CV_e))
+
+      df <- create_h_m2(z, CV_g, CV_m, CV_e, type = "m2", data = data)
+
+      #CV_X2 = (CV_m / (CV_g + CV_m + CV_e))
       
-      df <- data.frame(   z_day = z,
-                            day = backztran_DSH(z, data = data),
-                       group_id = group_var,
-                       Mean_age = posterior_summary(pred)[1],
-                       Estimate = posterior_summary(CV_X2)[1],
-                          Lower =  posterior_summary(CV_X2)[3],
-                          Upper =  posterior_summary(CV_X2)[4])
+      #df <- data.frame(   z_day = z,
+                           # day = backztran_DSH(z, data = data),
+                       #group_id = group_var,
+                      # Mean_age = posterior_summary(pred)[1],
+                      # Estimate = posterior_summary(CV_X2)[1],
+                       #   Lower =  posterior_summary(CV_X2)[3],
+                        #  Upper =  posterior_summary(CV_X2)[4])
     }
     return(df)
 }
