@@ -51,13 +51,13 @@ extract_V <- function(model, level = "F1_Genotype"){
 
 #' @title generate_data
 #' @description Creates a dataframe of day, variable type of the grouping ID (random effect) and the estaimte along with 95% credible interval
-#' @param z_age The z-scaled age variable
+#' @param age The raw age variable
 #' @param type A character string that specifies what the variable is (i.e., h2, m2 or some variance component - e.g., dam_id)
 #' @param data The data frame from which the scaled age data originates
 #' @return Returns a dataframe containing the z-scaled age, backtransformed age (in days), the type and the mean estimate and upper and lower 95% credible interval for the variable of interest.
-generate_data <- function(x, z_age, type, data){
-        data.frame(   z_day = z_age,
-                        day = backztran_DSH(z_age, data),
+generate_data <- function(x, age, type, data){
+        data.frame(   z_day = ztran_DsH(z_age, data),
+                        day = age,
                    group_id = type,
                    Estimate = posterior_summary(x)[1],
                       Lower = posterior_summary(x)[3],
@@ -256,6 +256,11 @@ func_growth_predictions <- function(day, predat, posterior, data){
   return(df)
 }
 
+model = brm_12_hot_het_fixed1
+group_var = "dam_id"
+x = 0
+data = data_DA
+
 ############################
 ## Functions Below Still need to be simplified. 
 ###########################
@@ -264,36 +269,35 @@ get_CV_brms <- function(x, model, group_var, data){
     model_post <- posterior_samples(model)
   
   #Convert regular day to Z days 
-    z <- ztran_DsH(x, data = data)
+     z <- ztran_DsH(x, data = data)
   
   #Make predictions for mean mass at a given age
-  pred <- model_post[, "b_Intercept"] + #Intercept
-    model_post[, "b_z_days_since_hatch"] *  z + #Linear day effect 
-    model_post[, "b_z_days_since_hatch_I2"] * (z^2) #Curve day effect 
+  pred <- model_post[, "b_Intercept"] +                   # Intercept
+          model_post[, "b_z_days_since_hatch"] *  z +     # Linear day effect 
+          model_post[, "b_z_days_since_hatch_I2"] * (z^2) # Curve day effect 
   
   #Get variance at a given age
   if(group_var == "F1_Genotype"){
    # Extract G
-         V_g <- extract_V(model, level = "F1_Genotype")         # extracts the variance components from the model
+         V_g <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
      V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])  # calculates variance at a given age, x
-        CV_g <- (100 * (V_g^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
+        CV_g <- (100 * (V_g_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
       
     #Arrange predictions neatly
-    df <-  generate_data(CV_e, x, type = group_var, data)
+    df <-  generate_data(CV_g, x, type = group_var, data)       # create a summary data frame for these data
   }
   
   if(group_var == "dam_id"){
     # Extract M
-         V_m <- extract_V(model, level = "dam_id")              # extracts the variance components from the model
+         V_m <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
      V_m_age <- calc_V_across_age(x, V_m[["V"]], V_m[["COV"]])  # calculates variance at a given age, x
-        CV_m <- (100 * (V_m^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
+        CV_m <- (100 * (V_m_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
 
     #Arrange predictions neatly
-    df <-  generate_data(CV_e, x, type = group_var, data)
+    df <-  generate_data(CV_m, x, type = group_var, data)       # create a summary data frame for these data
   }
   
   if(group_var == "sigma"){
-    
    # Extract E
          V_e <-  get_Vr_across_age(model, x)
         CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
