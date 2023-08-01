@@ -256,11 +256,6 @@ func_growth_predictions <- function(day, predat, posterior, data){
   return(df)
 }
 
-model = brm_12_hot_het_fixed1
-group_var = "dam_id"
-x = 0
-data = data_DA
-
 ############################
 ## Functions Below Still need to be simplified. 
 ###########################
