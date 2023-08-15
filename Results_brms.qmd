@@ -227,45 +227,45 @@ brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
  brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het")
 
 #Define the days to calculate estimates
-z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
+  z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
 
 #Get estimates across age for hot treatment
-brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+  brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+  brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+  brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 
 #Compile all variance estimates together
-brms_hot <- bind_rows(brms_hot_Vg,
+  brms_hot <- bind_rows(brms_hot_Vg,
                       brms_hot_Vm,
                       brms_hot_Ve)
 
 #Add in treatment info
-brms_hot$Treatment <- "Hot"
+  brms_hot$Treatment <- "Hot"
 
 #Obtain estimates for cold treatment
-brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+  brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+  brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+  brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Compile all variance estimates together
-brms_cold <- bind_rows(brms_cold_Vg,
+  brms_cold <- bind_rows(brms_cold_Vg,
                        brms_cold_Vm,
                        brms_cold_Ve)
 # Add in treatment info                       
-brms_cold$Treatment <- "Cold"              
+  brms_cold$Treatment <- "Cold"              
 
 #Put both datasets together
-brms_compare <- bind_rows(brms_hot, brms_cold)
+  brms_compare <- bind_rows(brms_hot, brms_cold)
 
 #Change the labels for each panel
-group_var_labs_3 <- c("G  ", "M  ", "Residual")
+  group_var_labs_3 <- c("G  ", "M  ", "Residual")
 
-names(group_var_labs_3) <- unique(brms_compare$group_id)
+  names(group_var_labs_3) <- unique(brms_compare$group_id)
 
 #Change order of labels
-brms_compare$group_id<- factor(brms_compare$group_id , levels = c("F1_Genotype", "dam_id", "sigma"))
-brms_compare$treatment<- factor(brms_compare$Treatment , levels = c("Cold", "Hot"), labels = c("Cold", "Hot"))
+  brms_compare$group_id<- factor(brms_compare$group_id , levels = c("F1_Genotype", "dam_id", "sigma"))
+  brms_compare$treatment<- factor(brms_compare$Treatment , levels = c("Cold", "Hot"), labels = c("Cold", "Hot"))
 ```
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
