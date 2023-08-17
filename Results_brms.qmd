@@ -55,40 +55,40 @@ output:
 # Results
 
 ```{r, echo = FALSE, include = FALSE}
-data %>% nrow()
-data %>% select()
+  data %>% nrow()
+  data %>% select()
 
 #Total number of lizards
-data$liz_id %>% unique() %>% length()
+  data$liz_id %>% unique() %>% length()
 
 #How many lizards per treatment
-treat_lizards <- data %>% group_by(treatment) %>%
-  summarise(Num_individuals = length(unique(liz_id)))
+  treat_lizards <- data %>% group_by(treatment) %>%
+    summarise(Num_individuals = length(unique(liz_id)))
 
 #How old were lizards
-age_dat <-data %>% group_by(liz_id, treatment) %>%
-  summarise(max_age = max(days_since_hatch))
-age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% mean() %>% round(2)
-age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% min() %>% round(2)
-age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% max() %>% round(2)
+  age_dat <-data %>% group_by(liz_id, treatment) %>%
+    summarise(max_age = max(days_since_hatch))
+  age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% mean() %>% round(2)
+  age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% min() %>% round(2)
+  age_dat %>% filter(treatment == 29) %>% pull(max_age) %>% max() %>% round(2)
 
-age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% mean() %>% round(2)
-age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% min() %>% round(2)
-age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% max() %>% round(2)
+  age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% mean() %>% round(2)
+  age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% min() %>% round(2)
+  age_dat %>% filter(treatment == 23) %>% pull(max_age) %>% max() %>% round(2)
 
-age_dat %>% pull(max_age) %>% mean() %>% round(2)
-age_dat %>% pull(max_age) %>% sd() %>% round(2)
+  age_dat %>% pull(max_age) %>% mean() %>% round(2)
+  age_dat %>% pull(max_age) %>% sd() %>% round(2)
 
 #How many measurements per lizard
-num_meas_dat <- data %>% group_by(liz_id, treatment) %>%
-  summarise(Num_measures = length(liz_id)) %>% as.data.frame()
-mean(num_meas_dat$Num_measures) %>% round(2)
-sd(num_meas_dat$Num_measures) %>% round(2)
+  num_meas_dat <- data %>% group_by(liz_id, treatment) %>%
+    summarise(Num_measures = length(liz_id)) %>% as.data.frame()
+  mean(num_meas_dat$Num_measures) %>% round(2)
+  sd(num_meas_dat$Num_measures) %>% round(2)
 
-#Merge 
-measures_age <- left_join(num_meas_dat, age_dat) 
-measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% mean()
-measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% sd()
+  #Merge 
+  measures_age <- left_join(num_meas_dat, age_dat) 
+  measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% mean()
+  measures_age %>% filter(Num_measures >= 11.5) %>% pull(max_age) %>% sd()
 
 ```
 
