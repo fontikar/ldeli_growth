@@ -8,36 +8,37 @@ output:
 ---
 
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-options(digits = 2)
-rm(list=ls())
+  knitr::opts_chunk$set(echo = TRUE)
+  options(digits = 2)
+  rm(list=ls())
 
 # Load packages
-pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel, magick, readxl, officer)
+  pacman::p_load(dplyr, magrittr, ggplot2, patchwork, lubridate, stringr, tidyr, MCMCglmm, bookdown, pander, brms, janitor, purrr, tidybayes, stringr, latex2exp, tidybayes, bayestestR, kinship2, xlsx, patchwork, ggrepel, magick, readxl, officer)
 
 #Read in dataset
 #Complete
-data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
-str(data)
-dim(data)
+  data <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_for_analysis.csv", stringsAsFactors = F)
+  str(data)
+  dim(data)
 
 #Augmented
-data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
-str(data_DA)
-dim(data_DA)
+  data_DA <- read.csv("./data/growth/processed/analysis/Ldeli_quangen_growth_DA.csv", stringsAsFactors = F)
+  str(data_DA)
+  dim(data_DA)
 
 #ggplot theme
-my_theme <- theme(#legend.position = "none",
-  legend.position = "bottom",
-  legend.text =element_text(size = 14),
-  legend.title =element_text(size = 14, face = "bold"),
-  panel.grid.major = element_blank(), 
-  panel.grid.minor = element_blank(),
-  axis.text=element_text(size=16),
-  axis.title=element_text(size=16,face="bold"),
-  plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
+  my_theme <- theme(#legend.position = "none",
+    legend.position = "bottom",
+    legend.text =element_text(size = 14),
+    legend.title =element_text(size = 14, face = "bold"),
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    axis.text=element_text(size=16),
+    axis.title=element_text(size=16,face="bold"),
+    plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 
-source("./R/Analysis/functions.R")
+# Load functions
+  source("./R/Analysis/functions.R")
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
