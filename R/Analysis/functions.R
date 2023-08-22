@@ -56,7 +56,7 @@ extract_V <- function(model, level = "F1_Genotype"){
 #' @param data The data frame from which the scaled age data originates
 #' @return Returns a dataframe containing the z-scaled age, backtransformed age (in days), the type and the mean estimate and upper and lower 95% credible interval for the variable of interest.
 generate_data <- function(x, age, type, data){
-        data.frame(   z_day = ztran_DsH(z_age, data),
+        data.frame(   z_day = ztran_DsH(age, data),
                         day = age,
                    group_id = type,
                    Estimate = posterior_summary(x)[1],
