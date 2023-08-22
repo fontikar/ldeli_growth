@@ -270,12 +270,12 @@ func_growth_predictions <- function(day, predat, posterior, data){
 ############################
 ## Functions Below Still need to be simplified. 
 ###########################
-get_CV_brms <- function(x, model, group_var, data){
+get_CV_brms <- function(age, model, group_var, data){
   #Extract the fixed effects that can be used to make predcitions of the mean across age
     model_post <- posterior_samples(model)
   
   #Convert regular day to Z days 
-     z <- ztran_DsH(x, data = data)
+     z <- ztran_DsH(age, data = data)
   
   #Make predictions for mean mass at a given age
   pred <- model_post[, "b_Intercept"] +                   # Intercept
@@ -286,43 +286,43 @@ get_CV_brms <- function(x, model, group_var, data){
   if(group_var == "F1_Genotype"){
    # Extract G
          V_g <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
-     V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])  # calculates variance at a given age, x
+     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  # calculates variance at a given age, x
         CV_g <- (100 * (V_g_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
       
     #Arrange predictions neatly
-    df <-  generate_data(CV_g, x, type = group_var, data)       # create a summary data frame for these data
+    df <-  generate_data(CV_g, age, type = group_var, data)       # create a summary data frame for these data
   }
   
   if(group_var == "dam_id"){
     # Extract M
          V_m <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
-     V_m_age <- calc_V_across_age(x, V_m[["V"]], V_m[["COV"]])  # calculates variance at a given age, x
+     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  # calculates variance at a given age, x
         CV_m <- (100 * (V_m_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
 
     #Arrange predictions neatly
-    df <-  generate_data(CV_m, x, type = group_var, data)       # create a summary data frame for these data
+    df <-  generate_data(CV_m, age, type = group_var, data)       # create a summary data frame for these data
   }
   
   if(group_var == "sigma"){
    # Extract E
-         V_e <-  get_Vr_across_age(model, x)
+         V_e <-  get_Vr_across_age(model, age)
         CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
     
     #Arrange predictions neatly
-    df <-  generate_data(CV_e, x, type = group_var, data)
+    df <-  generate_data(CV_e, age, type = group_var, data)
   }
   
   if(group_var == "total"){
     # Extract G
           V_g <- extract_V(model, level = "F1_Genotype")
-      V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])  
+      V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  
     
     # Extract M
           V_m <- extract_V(model, level = "dam_id")
-      V_m_age <- calc_V_across_age(x, V_m[["V"]], V_m[["COV"]])  
+      V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  
     
     # Extract E
-          V_e <-  get_Vr_across_age(model, x)
+          V_e <-  get_Vr_across_age(model, age)
 
     #Calculate total phenotypic variance
       VtotalP <- V_g_age + V_m_age + V_e
@@ -331,19 +331,19 @@ get_CV_brms <- function(x, model, group_var, data){
         CVtot <- (100 * (VtotalP^0.5)) / exp(pred)
     
     #Arrange predictions neatly
-           df <-  generate_data(VtotalP, x, type = group_var, data)
+           df <-  generate_data(VtotalP, age, type = group_var, data)
    
   }
  
   return(df)
 }
 
-get_CV_X2 <- function(x, model, group_var, data){
+get_CV_X2 <- function(age, model, group_var, data){
   #Extract posterior
   model_post <- posterior_samples(model)
   
   #Convert regular day to Z days 
-  z <- ztran_DsH(x, data = data)
+  z <- ztran_DsH(age, data = data)
   
   #Make predictions for mean mass at a given age. Use this mass to calculate CV
   pred <- model_post[, "b_Intercept"] +                     # Intercept
@@ -353,47 +353,28 @@ get_CV_X2 <- function(x, model, group_var, data){
   #Get variance at a given age
   # Extract G
          V_g <- extract_V(model, level = "F1_Genotype")
-     V_g_age <- calc_V_across_age(x, V_g[["V"]], V_g[["COV"]])  
+     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  
         CV_g <- (100 * (V_g^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
   
   # Extract M
          V_m <- extract_V(model, level = "dam_id")
-     V_m_age <- calc_V_across_age(x, V_m[["V"]], V_m[["COV"]])  
+     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  
         CV_m <- (100 * (V_m^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
 
   # Extract E
-         V_e <-  get_Vr_across_age(model, x)
+         V_e <-  get_Vr_across_age(model, age)
         CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
     
   #Calculate heritability
     if(group_var == "h2"){
 
-      df <- create_h_m2(z, CV_g, CV_m, CV_e, type = "h2", data = data)
-
-      #CV_X2 = (CV_g / (CV_g + CV_m + CV_e))
-      
-      #df <- data.frame(   z_day = z,
-                           # day = backztran_DSH(z, data = data),
-                       #group_id = group_var,
-                       #Mean_age = posterior_summary(pred)[1],
-                       #Estimate = posterior_summary(CV_X2)[1],
-                        #  Lower =  posterior_summary(CV_X2)[3],
-                        #  Upper =  posterior_summary(CV_X2)[4])
-      
+      df <- create_h_m2(age, CV_g, CV_m, CV_e, type = "h2", data = data)
+          
     }
     if(group_var == "m2"){
 
-      df <- create_h_m2(z, CV_g, CV_m, CV_e, type = "m2", data = data)
-
-      #CV_X2 = (CV_m / (CV_g + CV_m + CV_e))
+      df <- create_h_m2(age, CV_g, CV_m, CV_e, type = "m2", data = data)
       
-      #df <- data.frame(   z_day = z,
-                           # day = backztran_DSH(z, data = data),
-                       #group_id = group_var,
-                      # Mean_age = posterior_summary(pred)[1],
-                      # Estimate = posterior_summary(CV_X2)[1],
-                       #   Lower =  posterior_summary(CV_X2)[3],
-                        #  Upper =  posterior_summary(CV_X2)[4])
     }
     return(df)
 }
