@@ -531,9 +531,9 @@ brm_12_hot_het_fixed1 <- readRDS("./output/rds/brm_12_hot_het_fixed1")
 brm_12_cold_het_fixed1 <- readRDS("./output/rds/brm_12_cold_het_fixed1") 
 
 #Obtain CV estimates over age for hot lizards
-hot_CV_G <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-hot_CV_M <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-hot_CV_E <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+hot_CV_G <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, age = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+hot_CV_M <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, age = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+hot_CV_E <- lapply(seq(0, 450, 30), function(x) get_CV_brms(model = brm_12_hot_het_fixed1, age = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Put these together
 hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
@@ -542,9 +542,9 @@ hot_CV <- bind_rows(hot_CV_G, hot_CV_M, hot_CV_E)
 hot_CV$treatment <- "Hot"
 
 #Obtain CV estimates over age for cold lizards
-cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+cold_CV_G <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, age = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+cold_CV_M <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, age = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+cold_CV_E <- lapply(seq(0, 500, 30), function(x) get_CV_brms(model = brm_12_cold_het_fixed1, age = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Put these together
 cold_CV <- bind_rows(cold_CV_G, cold_CV_M, cold_CV_E)
@@ -580,19 +580,18 @@ ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y =
         strip.background = element_blank())
 ```
 
-#### CHECK ALL BELOW ####
 
 ```{r}
 #CV of h2 and m2
-hot_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, x = x, group_var = "h2")) %>% bind_rows()
-hot_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, x = x, group_var = "m2")) %>% bind_rows()
+hot_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+hot_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 hot_CV_ratios <- bind_rows(hot_CV_h2, 
                            hot_CV_m2)
 hot_CV_ratios$treatment <- "hot"
 
-cold_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, x = x, group_var = "h2", data = data_DA)) %>% bind_rows()
-cold_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, x = x, group_var = "m2", data = data_DA)) %>% bind_rows()
+cold_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+cold_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 cold_CV_ratios <- bind_rows(cold_CV_h2, 
                            cold_CV_m2)
@@ -624,6 +623,7 @@ ggplot(data = CV_ratios, aes(x = day, y = Estimate, colour = factor(treatment)))
 ```
 
 
+#### CHECK ALL BELOW ####
 ## Do growth trajectories differ among developmental temperatures?
 
 To test for treatment differences in growth trajectories, we fitted four models with different combinations of treatment interactions with the linear and quadratic age parameters and compared their WAIC values (Table 1). The full model was best supported was model (Table S5), its G and M matrix is presented in Table S6 below. Model coefficients for the other three models are presented in Table S7-S9) 
