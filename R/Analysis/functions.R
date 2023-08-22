@@ -93,12 +93,15 @@ brms_model_check <- function(model, main = NULL, xlab = "Residuals"){
 
 #' @title calc_V_across_age
 #' @description Calculates the change in variance across age using the variance and covariance in intercept, linear slope and quadratic slope.
-#' @param z_age The z-scaled age variable
+#' @param age The raw age variable
 #' @param V The dataframe containing the estimated variances in intercept, linear slope and quadratic slope
 #' @param COV The dataframe containing the covariance between intercept, linear and quadratic slope
 #' @return Returns a vector with the estimated variance at a given age
-calc_V_across_age <- function(z_age, V, COV){
+calc_V_across_age <- function(age, V, COV, data = data){
 
+  # Z-transform age   
+     z_age <-  ztran_DsH(age, data = data)
+  
   # Calculating expected changes in variance across a continuous variable
     V <- V[1] + (z_age^2) * V[2] + (z_age^4) * V[3] +  # The SD of the intercept and linear and quadratic slope
            2 * z_age * COV[1]                       +  # Covariance of intercept and linear slope
@@ -110,23 +113,26 @@ calc_V_across_age <- function(z_age, V, COV){
 
 #' @title create_h_m2
 #' @description Calculates heritability (h2) and maternal effects (m2) proportions across age.
-#' @param z_age The z-scaled age variable
+#' @param age The raw age variable
 #' @param G The estimate of additive genetic variance
 #' @param M The estimate of maternal effect variance
 #' @param E The estimated environmental/residual variance
 #' @param data The data frame from which the scaled age data originates
 #' @return Returns a dataframe with the estimated h2 and m2 at a given age along with upper and lower credible intervals
-create_h_m2 <- function(z_age, G, M, E, type = c("h2", "m2"), data){
+create_h_m2 <- function(age, G, M, E, type = c("h2", "m2"), data){
    type <-  match.arg(type)
-   
+  
+   #Z-transform age   
+     z_age <-  ztran_DsH(age, data = data)
+
    if(type == "h2"){
         h2 <- G / (G + M + E)
-        df <- generate_data(h2, z_age, type = type, data = data)
+        df <- generate_data(h2, age, type = type, data = data)
    }
 
    if(type == "m2"){
         m2 <- M / (G + M + E)
-        df <- generate_data(m2, z_age, type = type, data = data)
+        df <- generate_data(m2, age, type = type, data = data)
    }
     
   return(df)
@@ -135,9 +141,13 @@ create_h_m2 <- function(z_age, G, M, E, type = c("h2", "m2"), data){
 #' @title get_Vr_across_age
 #' @description Calculates the environmental/residual variance across age.
 #' @param model The model that explicitly models 'sigma' (resiudal) across z-scaled age. 
-#' @param z_age The z-scaled age variable
+#' @param age The raw age variable
 #' @return Returns a vector with the estimated environmental/resiudal variance at a given age
-get_Vr_across_age <- function(model, z_age){
+get_Vr_across_age <- function(model, age, data){
+
+  #Z-transform age   
+     z_age <-  ztran_DsH(age, data = data)
+
   # Extract the sigma of intercept, linear slope 
        log_SD_e <- posterior_samples(model, pars = "b_") 
   
@@ -183,37 +193,38 @@ brms_Vcomp <- function(model, x, group_var, data){
   return(df)
 } 
 
-brms_m2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id", data) {
+brms_m2 <- function(model, age, G = "F1_Genotype", M = "dam_id", data) {
+    
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
-      G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
+      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
 
     # M - Maternal effect variance
                  M <- extract_V(model, level = M)
-      M_across_age <- calc_V_across_age(z_age, M[["V"]], M[["COV"]])
+      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
 
     # R - Environmental variance
-      E_across_age <- get_Vr_across_age(model, z_age)
+      E_across_age <- get_Vr_across_age(model, age)
 
     # Create the data frame
-                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "m2", data = data)
+                df <- create_h_m2(age, G_across_age, M_across_age, E_across_age, type = "m2", data = data)
                 return(df)
 }               
 
-brms_h2 <- function(model, z_age, G = "F1_Genotype", M = "dam_id", data) {
+brms_h2 <- function(model, age, G = "F1_Genotype", M = "dam_id", data) {
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
-      G_across_age <- calc_V_across_age(z_age, G[["V"]], G[["COV"]])
+      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
 
     # M - Maternal effect variance
                  M <- extract_V(model, level = M)
-      M_across_age <- calc_V_across_age(z_age, M[["V"]], M[["COV"]])
+      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
 
     # R - Environmental variance
-      E_across_age <- get_Vr_across_age(model, z_age)
+      E_across_age <- get_Vr_across_age(model, age)
 
     # Create the data frame
-                df <- create_h_m2(z_age, G_across_age, M_across_age, E_across_age, type = "h2", data = data)
+                df <- create_h_m2(age, G_across_age, M_across_age, E_across_age, type = "h2", data = data)
                 return(df)
 }               
 
