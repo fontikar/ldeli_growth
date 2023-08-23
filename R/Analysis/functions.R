@@ -166,29 +166,29 @@ get_Vr_across_age <- function(model, age, data){
 ###########################
 
 #Functions to calculate variance components and h2 and m2 form brms models over x e.g Age
-brms_Vcomp <- function(model, x, group_var, data){
+brms_Vcomp <- function(model, age, group_var, data){
   
   if(group_var == "F1_Genotype"){
                G <- extract_V(model, level = group_var)
-    G_across_age <- calc_V_across_age(x, G[["V"]], G[["COV"]])
-              df <- generate_data(G_across_age, x, type = group_var, data)
+    G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
+              df <- generate_data(G_across_age, age, type = group_var, data)
   }
   
   if(group_var == "dam_id"){
                M <- extract_V(model, level = group_var)
-    M_across_age <- calc_V_across_age(x, M[["V"]], M[["COV"]])
-              df <- generate_data(M_across_age, x, type = group_var, data)
+    M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
+              df <- generate_data(M_across_age, age, type = group_var, data)
   }
  
   if(group_var == "sigma"){
-               E <-  get_Vr_across_age(model, x)
-              df <-  generate_data(E, x, type = group_var, data)
+               E <-  get_Vr_across_age(model, age)
+              df <-  generate_data(E, age, type = group_var, data)
   }
   
   if(group_var == "total"){   
     #Calculate total phenotypic variance
     VtotalP <- VG + VM + VE
-    df <-  generate_data(VtotalP, x, type = group_var, data)
+    df <-  generate_data(VtotalP, age, type = group_var, data)
   }
   return(df)
 } 
@@ -374,7 +374,7 @@ get_CV_X2 <- function(age, model, group_var, data){
     if(group_var == "m2"){
 
       df <- create_h_m2(age, CV_g, CV_m, CV_e, type = "m2", data = data)
-      
+
     }
     return(df)
 }
