@@ -224,12 +224,12 @@ brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
  brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het")
 
 #Define the days to calculate estimates
-  z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
+  days <- seq(0, 450, 30)
 
 #Get estimates across age for hot treatment
-  brms_hot_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-  brms_hot_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-  brms_hot_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_hot_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+  brms_hot_Vg <- lapply(days, function(x) brms_Vcomp(model = brm_12_hot_het, age = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+  brms_hot_Vm <- lapply(days, function(x) brms_Vcomp(model = brm_12_hot_het, age = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+  brms_hot_Ve <- lapply(days, function(x) brms_Vcomp(model = brm_12_hot_het, age = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 
 #Compile all variance estimates together
