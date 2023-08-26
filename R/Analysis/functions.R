@@ -170,18 +170,18 @@ brms_Vcomp <- function(model, age, group_var, data){
   
   if(group_var == "F1_Genotype"){
                G <- extract_V(model, level = group_var)
-    G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
+    G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]], data = data)
               df <- generate_data(G_across_age, age, type = group_var, data)
   }
   
   if(group_var == "dam_id"){
                M <- extract_V(model, level = group_var)
-    M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
+    M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]], data = data)
               df <- generate_data(M_across_age, age, type = group_var, data)
   }
  
   if(group_var == "sigma"){
-               E <-  get_Vr_across_age(model, age)
+               E <-  get_Vr_across_age(model, age, data = data)
               df <-  generate_data(E, age, type = group_var, data)
   }
   
@@ -197,14 +197,14 @@ brms_m2 <- function(model, age, G = "F1_Genotype", M = "dam_id", data) {
     
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
-      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
+      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]], data = data)
 
     # M - Maternal effect variance
                  M <- extract_V(model, level = M)
-      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
+      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]], data = data)
 
     # R - Environmental variance
-      E_across_age <- get_Vr_across_age(model, age)
+      E_across_age <- get_Vr_across_age(model, age, data = data)
 
     # Create the data frame
                 df <- create_h_m2(age, G_across_age, M_across_age, E_across_age, type = "m2", data = data)
@@ -214,14 +214,14 @@ brms_m2 <- function(model, age, G = "F1_Genotype", M = "dam_id", data) {
 brms_h2 <- function(model, age, G = "F1_Genotype", M = "dam_id", data) {
     # G - Additive genetic variance
                  G <- extract_V(model, level = G)
-      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]])
+      G_across_age <- calc_V_across_age(age, G[["V"]], G[["COV"]], data = data)
 
     # M - Maternal effect variance
                  M <- extract_V(model, level = M)
-      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]])
+      M_across_age <- calc_V_across_age(age, M[["V"]], M[["COV"]], data = data)
 
     # R - Environmental variance
-      E_across_age <- get_Vr_across_age(model, age)
+      E_across_age <- get_Vr_across_age(model, age, data = data)
 
     # Create the data frame
                 df <- create_h_m2(age, G_across_age, M_across_age, E_across_age, type = "h2", data = data)
@@ -286,7 +286,7 @@ get_CV_brms <- function(age, model, group_var, data){
   if(group_var == "F1_Genotype"){
    # Extract G
          V_g <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
-     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  # calculates variance at a given age, x
+     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]], data = data)  # calculates variance at a given age, x
         CV_g <- (100 * (V_g_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
       
     #Arrange predictions neatly
@@ -296,7 +296,7 @@ get_CV_brms <- function(age, model, group_var, data){
   if(group_var == "dam_id"){
     # Extract M
          V_m <- extract_V(model, level = group_var)             # extracts the variance components from the model at level
-     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  # calculates variance at a given age, x
+     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]], data = data)  # calculates variance at a given age, x
         CV_m <- (100 * (V_m_age^0.5)) / exp(pred)               # calculate the coefficient of variation (CV) at age x
 
     #Arrange predictions neatly
@@ -305,7 +305,7 @@ get_CV_brms <- function(age, model, group_var, data){
   
   if(group_var == "sigma"){
    # Extract E
-         V_e <-  get_Vr_across_age(model, age)
+         V_e <-  get_Vr_across_age(model, age, data = data)
         CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
     
     #Arrange predictions neatly
@@ -315,14 +315,14 @@ get_CV_brms <- function(age, model, group_var, data){
   if(group_var == "total"){
     # Extract G
           V_g <- extract_V(model, level = "F1_Genotype")
-      V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  
+      V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]], data = data)  
     
     # Extract M
           V_m <- extract_V(model, level = "dam_id")
-      V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  
+      V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]], data = data)  
     
     # Extract E
-          V_e <-  get_Vr_across_age(model, age)
+          V_e <-  get_Vr_across_age(model, age, data = data)
 
     #Calculate total phenotypic variance
       VtotalP <- V_g_age + V_m_age + V_e
@@ -353,16 +353,16 @@ get_CV_X2 <- function(age, model, group_var, data){
   #Get variance at a given age
   # Extract G
          V_g <- extract_V(model, level = "F1_Genotype")
-     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]])  
+     V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]], data = data)  
         CV_g <- (100 * (V_g^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
   
   # Extract M
          V_m <- extract_V(model, level = "dam_id")
-     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]])  
+     V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]], data = data)  
         CV_m <- (100 * (V_m^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
 
   # Extract E
-         V_e <-  get_Vr_across_age(model, age)
+         V_e <-  get_Vr_across_age(model, age, data = data)
         CV_e <- (100 * (V_e^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
     
   #Calculate heritability
