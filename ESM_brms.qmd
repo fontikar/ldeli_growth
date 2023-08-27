@@ -634,7 +634,7 @@ To test for treatment differences in growth trajectories, we fitted four models 
 ```{r, echo = FALSE, include = FALSE}
 #Compiling fixed effects coefficients for overall model testing for differences in growth curves
 #Read in model output
-brm_5.het <- readRDS("./output/rds/old_models/brm_5.het")
+brm_5.het <- readRDS("./output/rds/old_models/brm_5.het") # Update the model
 
 #Extract entire posterior
 brm_5.het_post <- posterior_samples(brm_5.het)
