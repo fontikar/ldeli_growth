@@ -582,16 +582,19 @@ ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y =
 
 
 ```{r}
+# age
+age <- seq(0, 450, 30)
+
 #CV of h2 and m2
-hot_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
-hot_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
+hot_CV_h2 <- lapply(age, function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+hot_CV_m2 <- lapply(age, function(x) get_CV_X2(model = brm_12_hot_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 hot_CV_ratios <- bind_rows(hot_CV_h2, 
                            hot_CV_m2)
 hot_CV_ratios$treatment <- "hot"
 
-cold_CV_h2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
-cold_CV_m2 <- lapply(seq(0, 450, 30), function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
+cold_CV_h2 <- lapply(age, function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "h2", data = data_DA)) %>% bind_rows()
+cold_CV_m2 <- lapply(age, function(x) get_CV_X2(model = brm_12_cold_het_fixed1, age = x, group_var = "m2", data = data_DA)) %>% bind_rows()
 
 cold_CV_ratios <- bind_rows(cold_CV_h2, 
                            cold_CV_m2)
