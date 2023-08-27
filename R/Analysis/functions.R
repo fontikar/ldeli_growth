@@ -354,12 +354,12 @@ get_CV_X2 <- function(age, model, group_var, data){
   # Extract G
          V_g <- extract_V(model, level = "F1_Genotype")
      V_g_age <- calc_V_across_age(age, V_g[["V"]], V_g[["COV"]], data = data)  
-        CV_g <- (100 * (V_g^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
+        CV_g <- (100 * (V_g_age^0.5)) / exp(pred) ## NEED TO CHECK THAT V is standardised by mean at each age correctly
   
   # Extract M
          V_m <- extract_V(model, level = "dam_id")
      V_m_age <- calc_V_across_age(age, V_m[["V"]], V_m[["COV"]], data = data)  
-        CV_m <- (100 * (V_m^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
+        CV_m <- (100 * (V_m_age^0.5)) / exp(pred)## NEED TO CHECK THAT V is standardised by mean at each age correctly
 
   # Extract E
          V_e <-  get_Vr_across_age(model, age, data = data)
