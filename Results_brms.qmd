@@ -241,9 +241,9 @@ brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
   brms_hot$Treatment <- "Hot"
 
 #Obtain estimates for cold treatment
-  brms_cold_Vg <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
-  brms_cold_Vm <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
-  brms_cold_Ve <- lapply(z_days, function(x) brms_Vcomp(model = brm_12_cold_het, x = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
+  brms_cold_Vg <- lapply(days, function(x) brms_Vcomp(model = brm_12_cold_het, age = x, group_var = "F1_Genotype", data = data_DA)) %>% bind_rows()
+  brms_cold_Vm <- lapply(days, function(x) brms_Vcomp(model = brm_12_cold_het, age = x, group_var = "dam_id", data = data_DA)) %>% bind_rows()
+  brms_cold_Ve <- lapply(days, function(x) brms_Vcomp(model = brm_12_cold_het, age = x, group_var = "sigma", data = data_DA)) %>% bind_rows()
 
 #Compile all variance estimates together
   brms_cold <- bind_rows(brms_cold_Vg,
@@ -299,13 +299,13 @@ After accounting for heterogenous residual variance, we found no differences in 
 brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het") #brm_12_cold_het
  brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het") #brm_12_hot_het
 
-#Define the days
-z_days <- ztran_DsH(seq(0, 450, 30), data = data_DA)
+#Define the days to calculate estimates
+  days <- seq(0, 450, 30)
 
 #Compiling heritability and maternal effects estimates across days
 #Hot developmental temperature model
-brms_hot_h2 <- lapply(z_days, function(x) brms_h2(model = brm_12_hot_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
-brms_hot_m2 <- lapply(z_days, function(x) brms_m2(model = brm_12_hot_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_h2 <- lapply(days, function(x) brms_h2(model = brm_12_hot_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_hot_m2 <- lapply(days, function(x) brms_m2(model = brm_12_hot_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_hot_h2m2 <- bind_rows(brms_hot_h2, 
@@ -315,8 +315,8 @@ brms_hot_h2m2 <- bind_rows(brms_hot_h2,
 brms_hot_h2m2$treatment <- "hot"
 
 #Cold developmental temperature model
-brms_cold_h2 <- lapply(z_days, function(x) brms_h2(model = brm_12_cold_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
-brms_cold_m2 <- lapply(z_days, function(x) brms_m2(model = brm_12_cold_het, z_age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_h2 <- lapply(days, function(x) brms_h2(model = brm_12_cold_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_cold_m2 <- lapply(days, function(x) brms_m2(model = brm_12_cold_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
 brms_cold_h2m2 <- bind_rows(brms_cold_h2, 
