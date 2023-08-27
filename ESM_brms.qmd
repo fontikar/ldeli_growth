@@ -20,7 +20,7 @@ crossref:
   tbl-prefix: "Table"
 ---
 
-**This document contains all the code, figures and tables for the manuscript "Heritability and developmental plasticity of growth in an oviparous lizard: Pedigree and genomic relatedness". These should reproduce those found in the Electronic Supplementary Saterial (ESM) of the manuscript.**
+**This document contains all the code, figures and tables for the manuscript "Heritability and developmental plasticity of growth in an oviparous lizard: Pedigree and genomic relatedness". These should reproduce those found in the Electronic Supplementary Material (ESM) of the manuscript.**
 
 ```{r setup, include=FALSE, eval = T, echo = FALSE, warning = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
