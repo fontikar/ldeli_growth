@@ -625,8 +625,6 @@ ggplot(data = CV_ratios, aes(x = day, y = Estimate, colour = factor(treatment)))
         strip.background = element_blank())
 ```
 
-
-#### CHECK ALL BELOW ####
 ## Do growth trajectories differ among developmental temperatures?
 
 To test for treatment differences in growth trajectories, we fitted four models with different combinations of treatment interactions with the linear and quadratic age parameters and compared their WAIC values (Table 1). The full model was best supported was model (Table S5), its G and M matrix is presented in Table S6 below. Model coefficients for the other three models are presented in Table S7-S9) 
@@ -634,7 +632,7 @@ To test for treatment differences in growth trajectories, we fitted four models 
 ```{r, echo = FALSE, include = FALSE}
 #Compiling fixed effects coefficients for overall model testing for differences in growth curves
 #Read in model output
-brm_5.het <- readRDS("./output/rds/old_models/brm_5.het") # Update the model
+brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") # Update the model brm_5.het
 
 #Extract entire posterior
 brm_5.het_post <- posterior_samples(brm_5.het)
@@ -661,11 +659,7 @@ rownames(Table_5) <- NULL
 Table_5 <- select(Table_5, Parameter, Estimate:Q97.5)
 
 #Output it nicely for ESM
-pander(Table_5,
-       split.cell = c(100,30,30,30),
-       #split.table = Inf,
-       justify = "lccc",
-       caption = "Table S5 Coefficient estimates from full model testing the effects of developmental treatment on mass and how mass changes with age. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+flextable(Table_5)   %>%  align(align = "center", part = "all") %>% autofit()
 ```
 
 ```{r, echo = FALSE, include = FALSE}
@@ -760,6 +754,7 @@ posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
 
 ```
 
+#### CHECK ALL BELOW ####
 ```{r, echo = FALSE, include = FALSE}
 #Model coefficients of the other models
 brm_5.1.het <- readRDS("./output/rds/brm_5.1.het")
