@@ -558,6 +558,10 @@ brms_CV_compare <- bind_rows(hot_CV, cold_CV)
 
 ```{r, echo = FALSE, warning = FALSE, include = FALSE, message = FALSE}
 #Plotting CV comparisons of variance components over age
+
+group_var_labs_3 <- c(F1_Genotype = "G",
+                      dam_id = "M")
+
 ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = day, y = Estimate, colour = factor(treatment))) +
   geom_point(size = 2) + 
   #geom_errorbar(aes(min = Lower, max = Upper), width = 0, alpha = 0.5) + 
