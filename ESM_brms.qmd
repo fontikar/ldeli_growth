@@ -755,12 +755,11 @@ posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
 
 ```
 
-#### CHECK ALL BELOW ####
 ```{r, echo = FALSE, include = FALSE}
 #Model coefficients of the other models
-brm_5.1.het <- readRDS("./output/rds/brm_5.1.het")
-brm_5.1.5.het <- readRDS("./output/rds/brm_5.1.5.het")
-brm_5.2.het <- readRDS("./output/rds/brm_5.2.het")
+  brm_5.1.het <- readRDS("./output/rds/brm_12_het_fixed2") #brm_5.1.het
+brm_5.1.5.het <- readRDS("./output/rds/brm_12_het_fixed3") #brm_5.1.5.het
+  brm_5.2.het <- readRDS("./output/rds/brm_12_het_fixed4") #brm_5.2.het
 
 #Posterior Summary for all coefficients
 posterior_summary(brm_5.1.het)[1:20,] %>% round(3)
@@ -785,12 +784,14 @@ rownames(Table_7) <- NULL
 #Selecting relevant columns
 Table_7 <- select(Table_7, Parameter, Estimate:Q97.5)
 
-#Outputting it nicely for ESM
-pander(Table_7,
-       split.cell = c(100,30,30,30),
-       #split.table = Inf,
-       justify = "lccc",
-       caption = "Table S7 Coefficient estimates from model with interaction between treatment and age (linear growth rate) only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+```
+
+```{r}
+#| label: tbl-Table_7
+#| tbl-cap: Coefficient estimates from model with interaction between treatment and age (linear growth rate) only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. $n_{obs}$ = 3002"
+
+#Output it nicely for ESM
+flextable(Table_7)   %>%  align(align = "center", part = "all") %>% autofit()
 ```
 
 ```{r, echo = FALSE}
@@ -808,12 +809,13 @@ Table_8$Parameter <- rownames(Table_8)
 rownames(Table_8) <- NULL
 #Selecting relevant columns
 Table_8 <- select(Table_8, Parameter, Estimate:Q97.5)
+```
+
+```{r}
+#| label: tbl-Table_8
+#| tbl-cap: Coefficient estimates from model with interaction between treatment and quadratic age paramater only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. $n_{obs}$ = 3002"
 #Outputting it nicely for ESM
-pander(Table_8,
-       split.cell = c(100,30,30,30),
-       #split.table = Inf,
-       justify = "lccc",
-       caption = "Table S8 Coefficient estimates from model with interaction between treatment and quadratic age paramater only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+flextable(Table_8)  %>%  align(align = "center", part = "all") %>% autofit()
 ```
 
 ```{r, echo = FALSE}
@@ -831,14 +833,17 @@ Table_9$Parameter <- rownames(Table_9)
 rownames(Table_9) <- NULL
 #Selecting relevant columns
 Table_9 <- select(Table_9, Parameter, Estimate:Q97.5)
-#Outputting it nicely for ESM
-pander(Table_9,
-       split.cell = c(100,30,30,30),
-       #split.table = Inf,
-       justify = "lccc",
-       caption = "Table S9 Coefficient estimates from model with main effects of treatment and age only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. n_obs = 3002")
+
 ```
 
+```{r}
+#| label: tbl-Table_9
+#| tbl-cap: Coefficient estimates from model with main effects of treatment and age only. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. $n_{obs}$ = 3002"
+
+#Outputting it nicely for ESM
+flextable(Table_9)  %>%  align(align = "center", part = "all") %>% autofit()
+```
+#### CHECK ALL BELOW ####
 ## Egg mortality analysis
 
 ```{r, echo = FALSE, include = FALSE, eval = FALSE}
