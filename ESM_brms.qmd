@@ -843,7 +843,7 @@ Table_9 <- select(Table_9, Parameter, Estimate:Q97.5)
 #Outputting it nicely for ESM
 flextable(Table_9)  %>%  align(align = "center", part = "all") %>% autofit()
 ```
-#### CHECK ALL BELOW ####
+
 ## Egg mortality analysis
 
 ```{r, echo = FALSE, include = FALSE, eval = FALSE}
@@ -888,19 +888,19 @@ posterior_summary(mort_model)[1:3,]
 
 mod.5.noid <- readRDS("./output/rds/mod.5.noid")
 
-Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)
+Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)  %>% data.frame()  %>% mutate(Parameter = rownames(.)) %>% select(Parameter, Estimate:Q97.5)  %>% remove_rownames()
 ```
 
 ## How does developmental temperatures affect growth when individual variation is not taken into account?
 
-```{r, eval = TRUE, echo = TRUE, include = TRUE}
-pander(Table_noID,
-       split.cell = c(100,30,30,30),
-       #split.table = Inf,
-       justify = "lccc",
-       caption = "Table S10, model coefficient testing")
-```
+```{r}
+#| label: tbl-Table_10
+#| tbl-cap: Coefficient estimates from model with main effects of treatment and age (linear and quadratic) only accounting for maternal effects. Bolded estimates are significantly different from zero. * indicates that value is above zero prior to rounding. $n_{obs}$ = 2926"
 
+#Outputting it nicely for ESM
+flextable(Table_noID)  %>%  align(align = "center", part = "all") %>% autofit()
+```
+#### CHECK ALL BELOW ####
 ```{r, eval = FALSE, echo = FALSE, include = FALSE}
 #Format date and treatment
 data_DA %<>% mutate(hatch_date = ymd(hatch_date),
