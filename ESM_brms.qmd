@@ -888,7 +888,7 @@ posterior_summary(mort_model)[1:3,]
 
 mod.5.noid <- readRDS("./output/rds/mod.5.noid")
 
-Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)  %>% data.frame()  %>% mutate(Parameter = rownames(.)) %>% select(Parameter, Estimate:Q97.5)  %>% remove_rownames()
+Table_noID <- posterior_summary(mod.5.noid)[1:8,-2] %>% round(2)  %>% data.frame()  %>% mutate(Parameter = rownames(.)) %>% select(Parameter, Estimate:Q97.5) %>% tibble::remove_rownames()
 ```
 
 ## How does developmental temperatures affect growth when individual variation is not taken into account?
