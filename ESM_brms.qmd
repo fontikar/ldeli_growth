@@ -749,9 +749,6 @@ Table_6_M[3, 2] <- paste0(M_cor_summary[3,1], " (", M_cor_summary[3,2], " - ", M
 
 #write.csv(Table_6_M, "output/tabs/Table_6_M.csv")
 
-#PE
-posterior_samples(brm_5.het, "^sd_id")^2 %>% posterior_summary() %>% signif(digits = 3)
-
 #Residuals
 posterior_samples(brm_5.het, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
 posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
