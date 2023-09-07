@@ -448,26 +448,26 @@ ggsave(pf, filename = "./output/figures/fig3ab.pdf", width = 10, height = 11)
 ```{r, eval = FALSE, echo = FALSE, include = FALSE}
 #Compare WAIC of fixed effect models
 #Read in fixed effect models
-    brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
-  brm_5.1.het <- readRDS("./output/rds/brm_12_het_fixed2") #old_models/brm_5.1.het
-brm_5.1.5.het <- readRDS("./output/rds/brm_12_het_fixed3") #old_models/brm_5.1.5.het
-  brm_5.2.het <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
+    brm_12_het_fixed1 <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
+    brm_12_het_fixed2 <- readRDS("./output/rds/brm_12_het_fixed2") #old_models/brm_5.1.het
+    brm_12_het_fixed3 <- readRDS("./output/rds/brm_12_het_fixed3") #old_models/brm_5.1.5.het
+    brm_12_het_fixed4 <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
 
 #Add the WAIC
-    waic_5.het <- waic(brm_5.het)
-  waic_5.1.het <- waic(brm_5.1.het)
-waic_5.1.5.het <- waic(brm_5.1.5.het)
-  waic_5.2.het <- waic(brm_5.2.het)
+    waic_fixed1.het <- waic(brm_12_het_fixed1)
+    waic_fixed2.het <- waic(brm_12_het_fixed2)
+    waic_fixed3.het <- waic(brm_12_het_fixed3)
+    waic_fixed4.het <- waic(brm_12_het_fixed4)
 
 # LOO
-    loo_5.het <- loo(brm_5.het, "loo", moment_match = TRUE)
-  loo_5.1.het <- loo(brm_5.1.het, "loo", moment_match = TRUE)
-loo_5.1.5.het <- loo(brm_5.1.5.het,  "loo", moment_match = TRUE)
-  loo_5.2.het <- loo(brm_5.2.het, "loo", moment_match = TRUE)
+    loo_fixed1.het <- loo(brm_12_het_fixed1, "loo", moment_match = TRUE)
+    loo_fixed2.het <- loo(brm_12_het_fixed2, "loo", moment_match = TRUE)
+    loo_fixed3.het <- loo(brm_12_het_fixed3,  "loo", moment_match = TRUE)
+    loo_fixed4.het <- loo(brm_12_het_fixed4, "loo", moment_match = TRUE)
  
 #Compare
-  tab_fixed_waic <- data.frame(loo_compare(waic_5.het, waic_5.1.het, waic_5.1.5.het, waic_5.2.het)) %>% select(waic, elpd_diff, se_diff) %>% mutate(id= row.names(.))
-  tab_fixed_loo <- data.frame(loo_compare(loo_5.het, loo_5.1.het, loo_5.1.5.het, loo_5.2.het)) %>% select(looic, elpd_diff, se_diff)  %>% mutate(id= row.names(.))
+  tab_fixed_waic <- data.frame(loo_compare(waic_fixed1.het, waic_fixed2.het, waic_fixed3.het, waic_fixed4.het)) %>% select(waic, elpd_diff, se_diff) %>% mutate(id= row.names(.))
+  tab_fixed_loo <- data.frame(loo_compare(loo_fixed1.het, loo_fixed2.het, loo_fixed3.het, loo_fixed4.het)) %>% select(looic, elpd_diff, se_diff)  %>% mutate(id= row.names(.))
 
 # Merge IC dataframes
   tab_fixed <- left_join(tab_fixed_waic, tab_fixed_loo, by = "id", suffix = c("_waic", "_loo"))  %>% relocate(id, .before = waic) 
@@ -491,31 +491,31 @@ flextable::flextable(tab2)  %>% flextable::width(j = 1, width = 5)  %>% flextabl
 ```{r, echo = FALSE, warning = FALSE, include = FALSE}
 
 # Load model
- brm_5.het <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
- brm_5.2.het <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
+ brm_12_het_fixed1 <- readRDS("./output/rds/brm_12_het_fixed1") #old_models/brm_5.het
+ brm_12_het_fixed4 <- readRDS("./output/rds/brm_12_het_fixed4") #old_models/brm_5.2.het
 
 # What is the R2 for the top model?
-  r2_fixed_main <- bayes_R2(brm_5.2.het)
+  r2_fixed_main <- bayes_R2(brm_12_het_fixed4)
 
 #Calculating inital mass. Extract posterior from the full model. We can marginalise coefficients anyway.
-  brm_5.het_post <- posterior_samples(brm_5.het)
+  brm_12_het_fixed_post <- posterior_samples(brm_12_het_fixed1)
 
 # Overall linear growth rate for cold
-  growth_rate_cold <- brm_5.het_post[,"b_z_days_since_hatch"] %>% exp() 
+  growth_rate_cold <- brm_12_het_fixed_post[,"b_z_days_since_hatch"] %>% exp() 
 
 # Overall linear growth rate for hot
-  growth_rate_hot <- brm_5.het_post[,"b_z_days_since_hatch"] + brm_5.het_post[,"b_treatment29:z_days_since_hatch"] %>% exp() 
+  growth_rate_hot <- brm_12_het_fixed_post[,"b_z_days_since_hatch"] + brm_12_het_fixed_post[,"b_treatment29:z_days_since_hatch"] %>% exp() 
 
 # Average / marginalised growth rate
   growth_rate <- c(growth_rate_cold, growth_rate_hot)  %>% posterior_summary() %>% round(3)
 
 # Cold mass at hatch. Convert back from log (grams) to grams.
-  cold_intercept <- brm_5.het_post[,"b_Intercept"] %>% exp()
+  cold_intercept <- brm_12_het_fixed_post[,"b_Intercept"] %>% exp()
   posterior_summary(cold_intercept)
   mean(cold_intercept)
 
 # Hot mass at hatch. Convert back from log (grams) to grams.
-  hot_intercept <- (brm_5.het_post[,"b_Intercept"] + brm_5.het_post[,"b_treatment29"]) %>% exp()
+  hot_intercept <- (brm_12_het_fixed_post[,"b_Intercept"] + brm_12_het_fixed_post[,"b_treatment29"]) %>% exp()
   posterior_summary(hot_intercept)
   mean(hot_intercept)
 
