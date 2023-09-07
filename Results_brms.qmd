@@ -264,6 +264,7 @@ brms_h2m2 <- bind_rows(brms_hot_h2m2, brms_cold_h2m2)
 # Heritability and M2 averaged across age
 avg_h2m2 <- brms_h2m2 %>% group_by(group_id) %>% summarise(Estimate = mean(Estimate), Lower = mean(Lower), Upper = mean(Upper)) %>% as.data.frame()
 
+ranges <- brms_h2m2 %>% group_by(group_id) %>% summarise(min = min(Estimate), max = max(Estimate)) %>% as.data.frame()
 #--------------------------------
 # Do teh same for the entire dataset.
 # Check that the same pattern is observed in the combined dataset
