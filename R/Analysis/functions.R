@@ -152,10 +152,10 @@ get_Vr_across_age <- function(model, age, data){
        log_SD_e <- posterior_samples(model, pars = "b_") 
   
   # Calculate the SD across age intercept and linear slope. exp() because SD is on log scale
-           SD_e <- exp(log_SD_e[,"b_sigma_Intercept"] + (z_age * log_SD_e[,"b_sigma_z_days_since_hatch"])) 
-  
+    log_SD_e_sig <- log_SD_e[,"b_sigma_Intercept"] + (z_age * log_SD_e[,"b_sigma_z_days_since_hatch"])
+
   #Squaring SD to get the variance
-             Ve <- (SD_e)^2 
+             Ve <- (exp(log_SD_e_sig))^2 
   
   # Return Vr
              return(Ve)
