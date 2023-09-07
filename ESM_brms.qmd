@@ -221,8 +221,8 @@ waic_table_comp$id <- row.names(waic_table_comp)
 #| tbl-cap: Comparisons of wAIC values for seven models with different combinations of random effects structures for additive genetic variance, maternal variance and permanent environmental variance
 
 # Load in the tables
-  tableDA_waic <- read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "waic_all") %>% select(-...5)
-   tableDA_loo <- read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "loo_all") %>% select(-...5)
+  tableDA_waic <- readxl::read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "waic_all") %>% select(-...5)
+   tableDA_loo <- readxl::read_xlsx("./output/tables/fulldata/models_results.xlsx", sheet = "loo_all") %>% select(-...5)
 
 # Combined DA Table
   tableDA <- left_join(tableDA_waic, tableDA_loo, by = c("Name Detail" = "Name Detail"), suffix = c(".waic", ".loo"))  %>% 
@@ -269,8 +269,8 @@ waic_het_table$id <- c("Heterogeneous", "Homogeneous")
 ```{r, echo = FALSE}
 #| label: tbl-brms_IC
 #| tbl-cap: Comparisons of expected log predictive density values for LOO and WAIC values to test the importance of  heterogenous and homogenous residual variance. Note that difference in values are calculated by substracting values from the model with lowest LOO and WAIC values i.e. the heterogenous variance model
-  table_het <- read_xlsx("./output/tables/models_results_het.xlsx", sheet = "waic_het_table")
- table_het2 <- read_xlsx("./output/tables/models_results_het.xlsx", sheet = "loo_het_table")
+  table_het <- readxl::read_xlsx("./output/tables/models_results_het.xlsx", sheet = "waic_het_table")
+ table_het2 <- readxl::read_xlsx("./output/tables/models_results_het.xlsx", sheet = "loo_het_table")
 
 # Combined DA Table
   tableDA_het <- left_join(table_het, table_het2, by = c("id" = "id"), suffix = c(".waic", ".loo"))  %>% select(id, waic, elpd_diff.waic, se_diff.waic, looic, elpd_diff.loo, se_diff.loo)  %>% 
