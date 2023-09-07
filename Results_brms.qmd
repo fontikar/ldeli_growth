@@ -389,15 +389,15 @@ brms_h2m2 <- bind_rows(brms_hot_h2m2, brms_cold_h2m2)
  #Define the days to calculate estimates
   days <- seq(0, 450, 30)
 
- brms_h2 <- lapply(days, function(x) brms_h2(model = brm_12_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
-brms_m2 <- lapply(days, function(x) brms_m2(model = brm_12_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+ brms_h2_brm_12 <- lapply(days, function(x) brms_h2(model = brm_12_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
+brms_m2_brm_12 <- lapply(days, function(x) brms_m2(model = brm_12_het, age = x, G = "F1_Genotype", M = "dam_id", data = data_DA)) %>% bind_rows()
 
 #Putting it together in one data frame
-brms_h2m2 <- bind_rows(brms_h2, 
-                        brms_m2)
+brms_h2m2_brm_12 <- bind_rows(brms_h2_brm_12, 
+                        brms_m2_brm_12)
 
 #Assigning treatment
-brms_h2m2$treatment <- "All"
+brms_h2m2_brm_12$treatment <- "All"
 ```
 
 ```{r, echo = FALSE}
@@ -441,6 +441,50 @@ pf <- ((brms_top_2) / (brms_bottom_2)) + plot_annotation(tag_levels = "A", tag_s
 pf
 ggsave(pf, filename = "./output/figures/fig3ab.pdf", width = 10, height = 11)
 
+```
+
+```{r}
+## Full data now
+
+#| label: fig-fig2
+#| fig-cap: fig3
+#Plotting figure
+brms_top_2 <- ggplot(data = brms_h2m2_brm_12 %>% filter(group_id == "h2"), aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  geom_line(size = 1) + 
+  scale_x_continuous(breaks = seq(0, 450, 60)) + 
+  scale_y_continuous(lim = c(0,0.6)) + 
+  scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
+  labs(x = " ",
+       y = TeX("$h^2$"),
+       #title = "Relative contribution of variance over age",
+       colour =  "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 18),
+        strip.background = element_blank())
+
+brms_bottom_2 <- ggplot(data = brms_h2m2_brm_12 %>% filter(group_id == "m2"), aes(x = day, y = Estimate, colour = factor(treatment))) +
+  geom_point(size = 2) + 
+  geom_ribbon(aes(ymin = Lower, ymax = Upper), alpha = 0.05) +
+  geom_line(size = 1) + 
+  scale_x_continuous(breaks = seq(0, 450, 60)) + 
+  scale_y_continuous(lim = c(0,1)) + 
+  scale_colour_manual(values = c("#2790F3", "#F24D2A")) + 
+  labs(y = TeX("$M^2$"),
+       x = "Age",
+       colour = "Treatment") + 
+  theme_bw() + 
+  my_theme +
+  theme(legend.position = "none",
+        strip.text = element_text(size = 18),
+        strip.background = element_blank())
+
+pf2 <- ((brms_top_2) / (brms_bottom_2)) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
+pf2
+ggsave(pf2, filename = "./output/figures/fig3ab_fullData.pdf", width = 10, height = 11)
 ```
 
 ## Do growth rate curves differ between incubation treatments? 
