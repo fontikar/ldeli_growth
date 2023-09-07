@@ -37,13 +37,26 @@ brm_12_hot_het <- brm(mods_hot,
 
 saveRDS(brm_12_hot_het, "output/rds/brm_12_hot_het")
 
-
+# Lets simplify the model and just use the intercept. The inetrecpt should then be pretty close to the slope model
 mods_hot2 <- bf(lnMass ~ 1 +
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
                  (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id),
                  sigma ~ 1)
 
 brm_12_hot_het2 <- brm(mods_hot2,
+               family = gaussian(),
+               prior = priors,
+               data2 = list(G_VCV = G_VCV),
+               data = hot_DA, 
+               chains = 4, cores = 4, iter = 6000, warmup = 1000, thin = 10,
+               control = list(adapt_delta = 0.98, max_treedepth=12), save_pars = save_pars(all = TRUE))
+
+# Test 3. We'll now just estimate the variance directly without modelling log SD
+mods_hot3 <- bf(lnMass ~ 1 +
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | gr(F1_Genotype, cov = G_VCV)) + 
+                 (1 + z_days_since_hatch + z_days_since_hatch_I2 | dam_id))
+
+brm_12_hot_het3 <- brm(mods_hot3,
                family = gaussian(),
                prior = priors,
                data2 = list(G_VCV = G_VCV),
