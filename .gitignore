@@ -1,5 +1,6 @@
 
 kfold/
+output/dartR/
 output/rds/old_models/
 output/G/
 .Rproj.user
