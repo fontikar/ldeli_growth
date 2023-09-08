@@ -58,48 +58,6 @@ my_theme <- theme(#legend.position = "none",
   plot.title = element_text(size = 20, face = "bold", hjust = 0.5))
 ```
 
-## Pedigree statistics across treatments
-
-```{r, ped_stats, echo = FALSE, include = FALSE}
-# pedigree_stats
-  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(F1_Genotype))) %>% as.data.frame()
-
-# Number of maternal half sibs
-  pedigree_stats_mat <- data %>% group_by(treatment, dam_id)  %>% summarise(n_sire = length(unique(sire_id))) %>% as.data.frame()
-
-  # Averge number of sires per dam
-      mean_sire <- mean(pedigree_stats_mat$n_sire)
-        sd_sire <- sd(pedigree_stats_mat$n_sire)
-        range <- range(pedigree_stats_mat$n_sire)
-        one_only_mom <- (sum(pedigree_stats_mat$n_sire == 1) / nrow(pedigree_stats_mat))*100
-
-# Number of paternal half sibs
-  pedigree_stats_pat <- data %>% group_by(treatment, sire_id)  %>% summarise(n_mom = length(unique(dam_id))) %>% as.data.frame()
-
-  # Averge number of dams per sire
-      mean_dam <- mean(pedigree_stats_pat$n_mom)
-        sd_dam <- sd(pedigree_stats_pat$n_mom)
-        range_dam <- range(pedigree_stats_pat$n_mom)
-        one_only_dad <- (sum(pedigree_stats_pat$n_mom == 1) / nrow(pedigree_stats_pat))*100
-  
-```
-
-Of the `r nrow(pedigree_stats_mat)` females in the dataset `r one_only_mom`% (`r sum(pedigree_stats_mat$n_sire == 1)` of `r nrow(pedigree_stats_mat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_sire, 2)` (SD = `r round(sd_sire, 2)`). The range of sires per dam was `r range[1]` to `r range[2]`.
-
-Of the `r nrow(pedigree_stats_pat)` females in the dataset `r one_only_dad`% (`r sum(pedigree_stats_pat$n_sire == 1)` of `r nrow(pedigree_stats_pat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_dam, 2)` (SD = `r round(sd_dam, 2)`). The range of sires per dam was `r range_dam[1]` to `r range_dam[2]`.
-
-```{r, ped_tbl, echo = FALSE}
-#| label: tbl-tb1
-#| tbl-cap: "Pedigree statistics for each treatment. The number of offspring and sires per dam (clutch) are provided for 23 and 29 C treatments. 'w' indicates a male not present within the breeding design resulting from mating or stored sperm from wild interactions."
-
-pedigree_stats <- pedigree_stats  %>% 
-                  rename(           "Treatment" = treatment,
-                                       "Dam ID" = dam_id,
-                                      "Sire ID" = sire_id,
-                          "Number of Offspring" = n_offspring)
-
-flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit()
-```
 
 ## Model fitting and selection of random effects structure
 
@@ -286,7 +244,7 @@ flextable(tableDA_het)  %>% align(align = "center", part = "all") %>% autofit()
 
 ## The influence of developmental temperature on additive genetic variance and maternal effects across age 
 
-```{r, varcomp_code, echo = FALSE, include = FALSE}
+```{r, varcomp_code, echo = FALSE}
 #Estimates of G, M, PE and h2 marginalised over age
 #Read in intercept models
 brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
@@ -333,9 +291,9 @@ flextable(hot_cold_Vcomps)  %>% align(align = "center", part = "all") %>% autofi
 
 ```
 
-```{r, hot_G, echo = FALSE, include= FALSE}
-#Compiling G matrix for hot incubated lizards
-#Calculate VAR from SD
+```{r, hot_G, echo = FALSE}
+#| label: tbl-hot_G
+#| tbl-cap: Variance components of additive genetic variance (V_additive_g) for hot incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
 
 brm_12_hot_het <- readRDS("./output/rds/brm_12_hot_het")
 
@@ -374,10 +332,13 @@ Table_4_G[3, 1] <- paste0(hot_G_cor_summary[2,1], " (", hot_G_cor_summary[2,2], 
 Table_4_G[3, 2] <- paste0(hot_G_cor_summary[3,1], " (", hot_G_cor_summary[3,2], " - ", hot_G_cor_summary[3,3], ")")
 
 write.csv(Table_4_G, "output/tables/Table_4_G_brms_hot.csv")
+
+flextable(Table_4_G) %>% align(align = "center", part = "all") %>% autofit()
 ```
 
-```{r, hot_M, echo = FALSE, include= FALSE}
-#Compiling M matrix for hot incubated lizards
+```{r, hot_M, echo = FALSE}
+#| label: tbl-hot_M
+#| tbl-cap: Variance components of maternal variance (V_maternal) for hot incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
 
 #Calculate VAR from SD
 hot_M_sd_post <- posterior_samples(brm_12_hot_het, "^sd_dam_id")
@@ -416,6 +377,13 @@ Table_4_M[3, 2] <- paste0(hot_M_cor_summary[3,1], " (", hot_M_cor_summary[3,2], 
 
 write.csv(Table_4_M, "output/tables/Table_4_M_brms_hot.csv")
 
+flextable(Table_4_M) %>% align(align = "center", part = "all") %>% autofit()
+```
+
+```{r, hot_Vr, echo = FALSE}
+#| label: tbl-hot_Vr
+#| tbl-cap: Variance components of residual variance (V_residual) for hot incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
+
 #Residuals
   hot_e_int <- exp(posterior_samples(brm_12_hot_het, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
 hot_e_slope <- posterior_samples(brm_12_hot_het, "b_sigma_z") %>% posterior_summary() %>% signif(digits = 3)
@@ -424,10 +392,13 @@ hot_e_slope <- posterior_samples(brm_12_hot_het, "b_sigma_z") %>% posterior_summ
 Table_4_E[1,2] <- paste0(hot_e_int[,"Estimate"], " (", hot_e_int[,"Q2.5"], " - ", hot_e_int[,"Q97.5"], ")")
 Table_4_E[1,3] <- paste0(hot_e_slope[,"Estimate"], " (", hot_e_slope[,"Q2.5"], " - ", hot_e_slope[,"Q97.5"], ")")
 write.csv(Table_4_E, "output/tables/Table_4_E_brms_hot.csv")
+
+flextable(Table_4_E) %>% align(align = "center", part = "all") %>% autofit()
 ```
 
-```{r, cold_G, echo = FALSE, include= FALSE}
-#Compiling G matrix for cold incubated lizards
+```{r, cold_G, echo = FALSE}
+#| label: tbl-cold_G
+#| tbl-cap: Variance components of additive genetic variance (V_additive_g) for cold incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
 
 brm_12_cold_het <- readRDS("./output/rds/brm_12_cold_het")
 
@@ -466,11 +437,14 @@ Table_5_G[2, 1] <- paste0(cold_G_cor_summary[1,1], " (", cold_G_cor_summary[1,2]
 Table_5_G[3, 1] <- paste0(cold_G_cor_summary[2,1], " (", cold_G_cor_summary[2,2], " - ", cold_G_cor_summary[2,3], ")")
 Table_5_G[3, 2] <- paste0(cold_G_cor_summary[3,1], " (", cold_G_cor_summary[3,2], " - ", cold_G_cor_summary[3,3], ")")
 
-#write.csv(Table_5_G, "output/tables/Table_5_G_G_brms_cold.csv")
+write.csv(Table_5_G, "output/tables/Table_5_G_G_brms_cold.csv")
+
+flextable(Table_5_G) %>% align(align = "center", part = "all") %>% autofit()
 ```
 
-```{r, cold_M, echo = FALSE, include= FALSE}
-#Compiling M matrix for cold incubated lizards
+```{r, cold_M, echo = FALSE}
+#| label: tbl-cold_M
+#| tbl-cap: Variance components of maternal variance (V_maternal) for cold incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
 
 #Calculate VAR from SD
 cold_M_sd_post <- posterior_samples(brm_12_cold_het, "^sd_dam_id")
@@ -507,13 +481,26 @@ Table_5_M[2, 1] <- paste0(cold_M_cor_summary[1,1], " (", cold_M_cor_summary[1,2]
 Table_5_M[3, 1] <- paste0(cold_M_cor_summary[2,1], " (", cold_M_cor_summary[2,2], " - ", cold_M_cor_summary[2,3], ")")
 Table_5_M[3, 2] <- paste0(cold_M_cor_summary[3,1], " (", cold_M_cor_summary[3,2], " - ", cold_M_cor_summary[3,3], ")")
 
-#write.csv(Table_5_M, "output/tables/Table_5_M_brms_cold.csv")
+write.csv(Table_5_M, "output/tables/Table_5_M_brms_cold.csv")
 
-#Residuals
-exp(posterior_samples(brm_12_cold_het, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
-exp(posterior_samples(brm_12_cold_het, "b_sigma_z"))^2 %>% posterior_summary() %>% signif(digits = 3)
+flextable(Table_5_M) %>% align(align = "center", part = "all") %>% autofit()
 ```
 
+```{r, cold_Vr, echo = FALSE}
+#| label: tbl-cold_Vr
+#| tbl-cap: Residual variance (V_residual) for cold incubated lizards. The lower and upper bounds of the 95% credible intervals are provided in brackets.
+  
+  #Residuals
+  cold_e_int <- exp(posterior_samples(brm_12_cold_het, "b_sigma_I"))^2 %>% posterior_summary() %>% signif(digits = 3)
+  cold_e_slope <- posterior_samples(brm_12_cold_het, "b_sigma_z")^2 %>% posterior_summary() %>% signif(digits = 3)
+
+      Table_5_E <- data.frame(matrix(nrow = 1, ncol = 3))
+  Table_5_E[1,2] <- paste0(cold_e_int[,"Estimate"], " (", cold_e_int[,"Q2.5"], " - ", cold_e_int[,"Q97.5"], ")")
+  Table_5_E[1,3] <- paste0(cold_e_slope[,"Estimate"], " (", cold_e_slope[,"Q2.5"], " - ", cold_e_slope[,"Q97.5"], ")")
+  write.csv(Table_5_E, "output/tables/Table_4_E_brms_hot.csv")
+
+  flextable(Table_5_E) %>% align(align = "center", part = "all") %>% autofit()
+```
 ## Accounting for scale-effects using coefficients of variation
 
 As the mean body mass increases over time, the variance may also increase concurrently due to scale effects and potentially bias estimates of quantitative genetics parameters (Wilson, Kruuk, et al., 2005). We therefore calculated coefficients of variation (CV) across age for each variance component using the following equation: 
@@ -584,7 +571,6 @@ ggsave(cv, filename = "output/figures/figSCV.pdf", width = 14.679012, height = 5
 
 ```
 
-
 ```{r, cv_ratio_code, echo = FALSE, include = FALSE}
 # age
 age <- seq(0, 450, 30)
@@ -636,8 +622,6 @@ cv2
 ggsave(cv2, filename = "output/figures/figSCV2.pdf", width = 14.679012, height = 5.703704, units = "in")
 ```
 
-```
-
 ## Do growth trajectories differ among developmental temperatures?
 
 To test for treatment differences in growth trajectories, we fitted four models with different combinations of treatment interactions with the linear and quadratic age parameters and compared their LOO/WAIC values (Table 1 og main manuscript). Given that the full model was in the set of top-supported models, we present its G and M matrix is presented in Table S6 below. 
@@ -660,7 +644,8 @@ brm_12.fixed <- brm_12.fixed[,c(1,3,4)]
 ```
 
 ```{r, fixed1_tbl, echo = FALSE}
-#Tabulating fixed effects
+#| label: tbl-fixed1_tbl
+#| tbl-cap: Table
 #Making a table
 Table_5 <- brm_12.fixed %>% as.data.frame()
 rownames(Table_5) <- c("Intercept", "Treatment", "Age",  "Age^2", "Treatment x Age","Treatment x Age^2")
@@ -677,15 +662,15 @@ flextable(Table_5)   %>%  align(align = "center", part = "all") %>% autofit()
 
 ```{r, G_fixed1, echo = FALSE, include = FALSE}
 #Compiling G matrix for best supported model (5_het)
-colnames(brm_5.het_post)[1:21]
+colnames(brm_12_het_fixed1_post)[1:21]
 
 #Calculate VAR from SD
-G_sd_post <- posterior_samples(brm_5.het, "^sd_F1_Genotype")
-G_var_post <- posterior_samples(brm_5.het, "^sd_F1_Genotype")^2
+G_sd_post <- posterior_samples(brm_12_het_fixed1, "^sd_F1_Genotype")
+G_var_post <- posterior_samples(brm_12_het_fixed1, "^sd_F1_Genotype")^2
 G_var_summary <- posterior_summary(G_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-G_cor_post <- posterior_samples(brm_5.het, "^cor_F1_Genotype")
+G_cor_post <- posterior_samples(brm_12_het_fixed1, "^cor_F1_Genotype")
 G_cor_post
 G_cor_summary <- posterior_summary(G_cor_post)[,-2] %>% signif(digits = 3)
 
@@ -722,12 +707,12 @@ Table_6_G[3, 2] <- paste0(G_cor_summary[3,1], " (", G_cor_summary[3,2], " - ", G
 #Compiling M matrix for best supported model (5_het)
 
 #Calculate VAR from SD
-M_sd_post <- posterior_samples(brm_5.het, "^sd_dam_id")
-M_var_post <- posterior_samples(brm_5.het, "^sd_dam_id")^2
+M_sd_post <- posterior_samples(brm_12_het_fixed1, "^sd_dam_id")
+M_var_post <- posterior_samples(brm_12_het_fixed1, "^sd_dam_id")^2
 M_var_summary <- posterior_summary(M_var_post)[,-2] %>% round(3)
 
 #Calculate COV from COR
-M_cor_post <- posterior_samples(brm_5.het, "^cor_dam_id")
+M_cor_post <- posterior_samples(brm_12_het_fixed1, "^cor_dam_id")
 M_cor_summary <- posterior_summary(M_cor_post)[,-2] %>% signif(digits = 3)
 
 M_cov_post <- cbind(M_cor_post[1] * (M_sd_post[1] * M_sd_post[2]), 
@@ -759,8 +744,8 @@ Table_6_M[3, 2] <- paste0(M_cor_summary[3,1], " (", M_cor_summary[3,2], " - ", M
 #write.csv(Table_6_M, "output/tabs/Table_6_M.csv")
 
 #Residuals
-posterior_samples(brm_5.het, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
-posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
+posterior_samples(brm_12_het_fixed1, "b_sigma_I")^2 %>% posterior_summary() %>% signif(digits = 3)
+posterior_summary(brm_12_het_fixed1, "b_sigma_z") %>% signif(digits = 3)
 
 ```
 
@@ -768,17 +753,13 @@ posterior_summary(brm_5.het, "b_sigma_z") %>% signif(digits = 3)
 
 Egg mortality did not differ significantly between the two treatments (see, @egg_mort_tbl).
 
-```{r, echo = FALSE, include = FALSE, eval = FALSE}
-#Egg mortality analysis
-egg_data <- read.csv("./data/egg_lizard/all_eggs.csv", stringsAsFactors = F)
-mort_model <- readRDS("./output/rds/mort_model")
-
-```
-
-
 ```{r, egg_mort_tbl, echo = FALSE}
 #| label: tbl-egg_mort_tbl
 #| tbl-cap: Analysis of egg mortality between treatmemnts. We fit a Bournoulli generalised linear mixed model with a logit link function to test whether egg mortality differed between treatments. We controlled for clutch ID as a random effect in our analysis. 
+
+# Load model
+mort_model <- readRDS("./output/rds/mort_model")
+
 # Create table
 Table_7 <- posterior_summary(mort_model)[1:3,]  %>% as.data.frame()  %>% tibble() %>% round(3)
 
@@ -789,4 +770,47 @@ Table_7 <- Table_7  %>% select(Parameter, Estimate, Q2.5, Q97.5)
 
 flextable(Table_7)  %>%  align(align = "center", part = "all") %>% autofit()
 
+```
+
+## Pedigree statistics across treatments
+
+```{r, ped_stats, echo = FALSE, include = FALSE}
+# pedigree_stats
+  pedigree_stats <- data %>% group_by(treatment, dam_id, sire_id)  %>% summarise(n_offspring = length(unique(F1_Genotype))) %>% as.data.frame()
+
+# Number of maternal half sibs
+  pedigree_stats_mat <- data %>% group_by(treatment, dam_id)  %>% summarise(n_sire = length(unique(sire_id))) %>% as.data.frame()
+
+  # Averge number of sires per dam
+      mean_sire <- mean(pedigree_stats_mat$n_sire)
+        sd_sire <- sd(pedigree_stats_mat$n_sire)
+        range <- range(pedigree_stats_mat$n_sire)
+        one_only_mom <- (sum(pedigree_stats_mat$n_sire == 1) / nrow(pedigree_stats_mat))*100
+
+# Number of paternal half sibs
+  pedigree_stats_pat <- data %>% group_by(treatment, sire_id)  %>% summarise(n_mom = length(unique(dam_id))) %>% as.data.frame()
+
+  # Averge number of dams per sire
+      mean_dam <- mean(pedigree_stats_pat$n_mom)
+        sd_dam <- sd(pedigree_stats_pat$n_mom)
+        range_dam <- range(pedigree_stats_pat$n_mom)
+        one_only_dad <- (sum(pedigree_stats_pat$n_mom == 1) / nrow(pedigree_stats_pat))*100
+  
+```
+
+Of the `r nrow(pedigree_stats_mat)` females in the dataset `r one_only_mom`% (`r sum(pedigree_stats_mat$n_sire == 1)` of `r nrow(pedigree_stats_mat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_sire, 2)` (SD = `r round(sd_sire, 2)`). The range of sires per dam was `r range[1]` to `r range[2]`.
+
+Of the `r nrow(pedigree_stats_pat)` females in the dataset `r one_only_dad`% (`r sum(pedigree_stats_pat$n_sire == 1)` of `r nrow(pedigree_stats_pat)`) had been sired by a single male. The average number of sires per dam was `r round(mean_dam, 2)` (SD = `r round(sd_dam, 2)`). The range of sires per dam was `r range_dam[1]` to `r range_dam[2]`.
+
+```{r, ped_tbl, echo = FALSE}
+#| label: tbl-tb1
+#| tbl-cap: "Pedigree statistics for each treatment. The number of offspring and sires per dam (clutch) are provided for 23 and 29 C treatments. 'w' indicates a male not present within the breeding design resulting from mating or stored sperm from wild interactions."
+
+pedigree_stats <- pedigree_stats  %>% 
+                  rename(           "Treatment" = treatment,
+                                       "Dam ID" = dam_id,
+                                      "Sire ID" = sire_id,
+                          "Number of Offspring" = n_offspring)
+
+flextable(pedigree_stats)  %>% align(align = "center", part = "all") %>% autofit()
 ```
