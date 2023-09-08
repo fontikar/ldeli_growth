@@ -501,6 +501,7 @@ flextable(Table_5_M) %>% align(align = "center", part = "all") %>% autofit()
 
   flextable(Table_5_E) %>% align(align = "center", part = "all") %>% autofit()
 ```
+
 ## Accounting for scale-effects using coefficients of variation
 
 As the mean body mass increases over time, the variance may also increase concurrently due to scale effects and potentially bias estimates of quantitative genetics parameters (Wilson, Kruuk, et al., 2005). We therefore calculated coefficients of variation (CV) across age for each variance component using the following equation: 
