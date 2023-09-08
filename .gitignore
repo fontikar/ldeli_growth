@@ -1,5 +1,7 @@
 
-output/
+kfold/
+output/rds/old_models/
+output/G/
 .Rproj.user
 R/.DS_Store
 doc/Revision/~$sponses_to_Reviewers.docx
