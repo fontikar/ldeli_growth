@@ -193,7 +193,7 @@ ggplot(data = brms_compare, aes(x = day, y = Estimate, colour = factor(treatment
   theme(legend.position = "none",
         strip.text = element_text(size = 18, face = "bold"),
         strip.background = element_blank())
-ggsave(filename = "./output/figures/fig2.pdf", width = 13.419753, height = 5.740741)
+ggsave(filename = "./output/figures/fig1.pdf", width = 13.419753, height = 5.740741)
 
 ```
 
@@ -220,7 +220,7 @@ ggplot(data = brms_all, aes(x = day, y = Estimate)) +
   theme(legend.position = "none",
         strip.text = element_text(size = 18, face = "bold"),
         strip.background = element_blank())
-ggsave(filename = "./output/figures/fig2_all.pdf", width = 13.419753, height = 5.740741)
+ggsave(filename = "./output/figures/fig1_all.pdf", width = 13.419753, height = 5.740741)
 ```
 
 We investigated whether increases in mass mean over time would result in scale effects that can bias variance estimates. We found that CV of G and M followed the same pattern was the raw variance estimates and conclude that scale effects did not influence our results (Fig. S2).
@@ -324,7 +324,7 @@ brms_bottom_2 <- ggplot(data = brms_h2m2 %>% filter(group_id == "m2"), aes(x = d
 
 pf <- ((brms_top_2) / (brms_bottom_2)) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
 pf
-ggsave(pf, filename = "./output/figures/fig3ab.pdf", width = 10, height = 11)
+ggsave(pf, filename = "./output/figures/fig2.pdf", width = 10, height = 11)
 
 ```
 
@@ -369,7 +369,7 @@ brms_bottom_2 <- ggplot(data = brms_h2m2_brm_12 %>% filter(group_id == "m2"), ae
 
 pf2 <- ((brms_top_2) / (brms_bottom_2)) + plot_annotation(tag_levels = "A", tag_suffix = ")") + theme(plot.tag =  element_text(size = 20, face = "bold"))
 pf2
-ggsave(pf2, filename = "./output/figures/fig3ab_fullData.pdf", width = 10, height = 11)
+ggsave(pf2, filename = "./output/figures/fig2_fullData.pdf", width = 10, height = 11)
 ```
 
 ## Do growth rate curves differ between incubation treatments? 
@@ -483,7 +483,7 @@ cold_ids <- df %>% filter(treatment == "23") %>% pull(liz_id) %>% unique()
 set.seed(6)
 cold_plot_ids <- as.character(sample(cold_ids, 20, replace = T))
 
-df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
+p3 <- df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
   ggplot(
     aes(x = day, y = mean_mass)) + 
   stat_smooth(aes(group = factor(liz_id)), 
@@ -497,6 +497,9 @@ df %>% filter(liz_id %in% c(hot_plot_ids, cold_plot_ids)) %>%
        colour =  "Treatment") +
   theme_bw() + 
   my_theme
+p3
+ggsave(p3, filename = "./output/figures/fig3.pdf", width = 10, height = 10)
+
 ```
 
 ```{r, tbl2, echo = FALSE, warning = FALSE}
