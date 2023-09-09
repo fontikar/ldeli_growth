@@ -568,7 +568,7 @@ cv <- ggplot(data = brms_CV_compare %>% filter(!group_id == "sigma"), aes(x = da
         strip.text = element_text(size = 18),
         strip.background = element_blank())
 cv
-ggsave(cv, filename = "output/figures/figSCV.pdf", width = 14.679012, height = 5.703704, units = "in")
+ggsave(cv, filename = "output/figures/figS1.pdf", width = 14.679012, height = 5.703704, units = "in")
 
 ```
 
@@ -620,7 +620,7 @@ cv2 <- ggplot(data = CV_ratios, aes(x = day, y = Estimate, colour = factor(treat
         strip.background = element_blank())
 
 cv2 
-ggsave(cv2, filename = "output/figures/figSCV2.pdf", width = 14.679012, height = 5.703704, units = "in")
+ggsave(cv2, filename = "output/figures/figS2.pdf", width = 14.679012, height = 5.703704, units = "in")
 ```
 
 ## Do growth trajectories differ among developmental temperatures?
