@@ -3,7 +3,11 @@
 
 This repository contains the data, code and models associated with the following manuscript:
 
-Fonti Kar, Shinichi Nakagawa, Daniel W.A. Noble. Heritability and developmental plasticity of growth in an oviparous lizard. EcoEvoRxiv. https://doi.org/10.32942/X2PP47. 
+Fonti Kar, Shinichi Nakagawa, Daniel W.A. Noble. Heritability and developmental plasticity of growth in an oviparous lizard. *EcoEvoRxiv*. https://doi.org/10.32942/X2PP47. 
+
+This manuscript has now been accepted for publication in *Heredity*.
+
+Fonti Kar, Shinichi Nakagawa, Daniel W.A. Noble. Heritability and developmental plasticity of growth in an oviparous lizard. *Heredity*, in press. 
 
 ## Relevant code files
 
